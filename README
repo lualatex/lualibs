@@ -32,9 +32,7 @@ Manifest
 
 Source files:
     lualibs.dtx
-    lualibs-aux.lua
     lualibs-boolean.lua
-    lualibs-dimen.lua
     lualibs-dir.lua
     lualibs-file.lua
     lualibs-io.lua
@@ -48,7 +46,13 @@ Source files:
     lualibs-table.lua
     lualibs-unicode.lua
     lualibs-url.lua
-    lualibs-utils.lua
+    lualibs-util-dim.lua
+    lualibs-util-jsn.lua
+    lualibs-util-lua.lua
+    lualibs-util-mrg.lua
+    lualibs-util-sto.lua
+    lualibs-util-str.lua
+    lualibs-util-tab.lua
     README
     Makefile
     NEWS

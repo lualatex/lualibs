@@ -6,36 +6,58 @@ if not modules then modules = { } end modules ['l-boolean'] = {
     license   = "see context related readme files"
 }
 
-boolean = boolean or { }
-
 local type, tonumber = type, tonumber
 
+boolean = boolean or { }
+local boolean = boolean
+
 function boolean.tonumber(b)
-    if b then return 1 else return 0 end
+    if b then return 1 else return 0 end -- test and return or return
 end
 
-function toboolean(str,tolerant)
-    if tolerant then
-        local tstr = type(str)
-        if tstr == "string" then
-            return str == "true" or str == "yes" or str == "on" or str == "1" or str == "t"
-        elseif tstr == "number" then
-            return tonumber(str) ~= 0
-        elseif tstr == "nil" then
-            return false
-        else
-            return str
-        end
+function toboolean(str,tolerant) -- global
+    if  str == nil then
+        return false
+    elseif str == false then
+        return false
+    elseif str == true then
+        return true
     elseif str == "true" then
         return true
     elseif str == "false" then
         return false
+    elseif not tolerant then
+        return false
+    elseif str == 0 then
+        return false
+    elseif (tonumber(str) or 0) > 0 then
+        return true
     else
-        return str
+        return str == "yes" or str == "on" or str == "t"
     end
 end
 
-function string.is_boolean(str)
+string.toboolean = toboolean
+
+function string.booleanstring(str)
+    if str == "0" then
+        return false
+    elseif str == "1" then
+        return true
+    elseif str == "" then
+        return false
+    elseif str == "false" then
+        return false
+    elseif str == "true" then
+        return true
+    elseif (tonumber(str) or 0) > 0 then
+        return true
+    else
+        return str == "yes" or str == "on" or str == "t"
+    end
+end
+
+function string.is_boolean(str,default)
     if type(str) == "string" then
         if str == "true" or str == "yes" or str == "on" or str == "t" then
             return true
@@ -43,13 +65,5 @@ function string.is_boolean(str)
             return false
         end
     end
-    return nil
-end
-
-function boolean.alwaystrue()
-    return true
-end
-
-function boolean.falsetrue()
-    return false
+    return default
 end

@@ -33,7 +33,7 @@
 \input docstrip.tex
 \Msg{************************************************************************}
 \Msg{* Installation}
-\Msg{* Package: lualibs 2011/01/20 v0.96 Lua additional functions.}
+\Msg{* Package: lualibs 2012/10/19 v0.97 Lua additional functions.}
 \Msg{************************************************************************}
 
 \keepsilent
@@ -90,7 +90,7 @@ and the derived file lualibs.lua.
 %<*driver>
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesFile{lualibs.drv}
-  [2011/01/20 v0.96 Lua additional functions.]
+  [2012/10/19 v0.97 Lua additional functions.]
 \documentclass{ltxdoc}
 \EnableCrossrefs
 \CodelineIndex
@@ -120,7 +120,7 @@ and the derived file lualibs.lua.
 % \GetFileInfo{lualibs.drv}
 %
 % \title{The \textsf{lualibs} package}
-% \date{2011/01/20 v0.96}
+% \date{2012/10/19 v0.97}
 % \author{Elie Roux \\ \texttt{elie.roux@telecom-bretagne.eu}}
 %
 % \maketitle
@@ -151,6 +151,63 @@ and the derived file lualibs.lua.
 % initialize \textsf{kpse} library so that |require()| can find files under
 % TEXMF tree: |kpse.set_program_name("luatex")|.
 %
+% \section{Files}
+%
+% The \textsf{lualibs} bundle contains files from two Con\TeX t Lua
+% library categories: The generic auxiliary functions (original file prefix:
+% |l-|) together form something close to a standard libary. Most of these are
+% extensions of an existing namespace, like for instance |l-table.lua| which
+% adds full-fledged serialization capabilities to the Lua table library.
+% They were imported under the \textsf{lualibs}-prefix.
+% (For a list see table~\ref{tab:extensions}.)
+%
+% \begin{table}[h]
+%  \centering
+%  \caption{Extensions of the Lua standard library.}
+%  \begin{tabular}{l l l}
+%   \textsf{lualibs} name & Con\TeX t name & content                        \\
+%   \hline
+%   lualibs-lua.lua       & l-lua.lua      & compatibility, library paths   \\
+%   lualibs-lpeg.lua      & l-lpeg.lua     & patterns                       \\
+%   lualibs-function.lua  & l-function.lua & empty except for dummy         \\
+%   lualibs-string.lua    & l-string.lua   & string manipulation            \\
+%   lualibs-table.lua     & l-table.lua    & serialization, conversion      \\
+%   lualibs-boolean.lua   & l-boolean.lua  & boolean converter              \\
+%   lualibs-number.lua    & l-number.lua   & bit operations                 \\
+%   lualibs-math.lua      & l-math.lua     & math functions                 \\
+%   lualibs-io.lua        & l-io.lua       & reading and writing files      \\
+%   lualibs-os.lua        & l-os.lua       & platform specific code         \\
+%   lualibs-file.lua      & l-file.lua     & filesystem operations          \\
+%   lualibs-md5.lua       & l-md5.lua      & checksum functions             \\
+%   lualibs-dir.lua       & l-dir.lua      & directory handling             \\
+%   lualibs-unicode.lua   & l-unicode.lua  & utf and unicode                \\
+%   lualibs-url.lua       & l-url.lua      & url handling                   \\
+%   lualibs-set.lua       & l-set.lua      & sets                           \\
+%  \end{tabular}
+%  \label{tab:extensions}
+% \end{table}
+%
+% The second category comprises a selection of files mostly from the
+% utilities namespace (|util-|; cf. table~\ref{tab:utilities}).
+% Their purpose is more specific and at times quite low-level.
+%
+% \begin{table}[h]
+%  \centering
+%  \caption{Utility functions.}
+%  \begin{tabular}{l l l}
+%   \textsf{lualibs} name & Con\TeX t name & content                     \\
+%   \hline
+%   lualibs-util-lua.lua  & util-lua.lua   & operations on bytecode      \\
+%   lualibs-util-sto.lua  & util-sto.lua   & table allocation            \\
+%   lualibs-util-mrg.lua  & util-mrg.lua   & merging lua sources         \\
+%   lualibs-util-dim.lua  & util-dim.lua   & converters for dimensions   \\
+%   lualibs-util-str.lua  & util-str.lua   & extra string functions      \\
+%   lualibs-util-tab.lua  & util-tab.lua   & extra table functions       \\
+%   lualibs-util-jsn.lua  & util-jsn.lua   & conversion to and from json \\
+%  \end{tabular}
+%  \label{tab:utilities}
+% \end{table}
+%
 % \pagebreak
 % \section{\texttt{lualibs.lua}}
 %
@@ -163,8 +220,8 @@ module('lualibs', package.seeall)
 
 local lualibs_module = {
     name          = "lualibs",
-    version       = 0.96,
-    date          = "2011/01/20",
+    version       = 0.97,
+    date          = "2012/10/19",
     description   = "Lua additional functions.",
     author        = "Hans Hagen, PRAGMA-ADE, Hasselt NL & Elie Roux",
     copyright     = "PRAGMA ADE / ConTeXt Development Team",
@@ -179,24 +236,30 @@ end
 % Load the modules.
 %
 %    \begin{macrocode}
-require("lualibs-string")
+require("lualibs-lua")
 require("lualibs-lpeg")
+require("lualibs-function")
+require("lualibs-string")
+require("lualibs-table")
 require("lualibs-boolean")
 require("lualibs-number")
 require("lualibs-math")
-require("lualibs-table")
-require("lualibs-aux")
 require("lualibs-io")
 require("lualibs-os")
 require("lualibs-file")
 require("lualibs-md5")
 require("lualibs-dir")
 require("lualibs-unicode")
-require("lualibs-utils")
-require("lualibs-dimen")
 require("lualibs-url")
 require("lualibs-set")
-require("lualibs-dimen")
+require("lualibs-util-str")
+--[[everything below apparently not required for the fontloader]]
+require("lualibs-util-tab")
+require("lualibs-util-sto")
+require("lualibs-util-dim")
+require("lualibs-util-jsn")
+--require("lualibs-util-mrg")-- not required
+require("lualibs-util-lua")
 %    \end{macrocode}
 %
 % \iffalse

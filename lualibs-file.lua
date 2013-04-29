@@ -8,293 +8,519 @@ if not modules then modules = { } end modules ['l-file'] = {
 
 -- needs a cleanup
 
-file = file or { }
+file       = file or { }
+local file = file
 
-local concat = table.concat
-local find, gmatch, match, gsub, sub, char = string.find, string.gmatch, string.match, string.gsub, string.sub, string.char
-local lpegmatch = lpeg.match
-
-function file.removesuffix(filename)
-    return (gsub(filename,"%.[%a%d]+$",""))
+if not lfs then
+    lfs = optionalrequire("lfs")
 end
 
-function file.addsuffix(filename, suffix)
-    if not suffix or suffix == "" then
-        return filename
-    elseif not find(filename,"%.[%a%d]+$") then
-        return filename .. "." .. suffix
+if not lfs then
+
+    lfs = {
+        getcurrentdir = function()
+            return "."
+        end,
+        attributes = function()
+            return nil
+        end,
+        isfile = function(name)
+            local f = io.open(name,'rb')
+            if f then
+                f:close()
+                return true
+            end
+        end,
+        isdir = function(name)
+            print("you need to load lfs")
+            return false
+        end
+    }
+
+elseif not lfs.isfile then
+
+    local attributes = lfs.attributes
+
+    function lfs.isdir(name)
+        return attributes(name,"mode") == "directory"
+    end
+
+    function lfs.isfile(name)
+        return attributes(name,"mode") == "file"
+    end
+
+ -- function lfs.isdir(name)
+ --     local a = attributes(name)
+ --     return a and a.mode == "directory"
+ -- end
+
+ -- function lfs.isfile(name)
+ --     local a = attributes(name)
+ --     return a and a.mode == "file"
+ -- end
+
+end
+
+local insert, concat = table.insert, table.concat
+local match = string.match
+local lpegmatch = lpeg.match
+local getcurrentdir, attributes = lfs.currentdir, lfs.attributes
+local checkedsplit = string.checkedsplit
+
+-- local patterns = file.patterns or { }
+-- file.patterns  = patterns
+
+local P, R, S, C, Cs, Cp, Cc, Ct = lpeg.P, lpeg.R, lpeg.S, lpeg.C, lpeg.Cs, lpeg.Cp, lpeg.Cc, lpeg.Ct
+
+local colon     = P(":")
+local period    = P(".")
+local periods   = P("..")
+local fwslash   = P("/")
+local bwslash   = P("\\")
+local slashes   = S("\\/")
+local noperiod  = 1-period
+local noslashes = 1-slashes
+local name      = noperiod^1
+local suffix    = period/"" * (1-period-slashes)^1 * -1
+
+----- pattern = C((noslashes^0 * slashes^1)^1)
+local pattern = C((1 - (slashes^1 * noslashes^1 * -1))^1) * P(1) -- there must be a more efficient way
+
+local function pathpart(name,default)
+    return name and lpegmatch(pattern,name) or default or ""
+end
+
+local pattern = (noslashes^0 * slashes)^1 * C(noslashes^1) * -1
+
+local function basename(name)
+    return name and lpegmatch(pattern,name) or name
+end
+
+-- print(pathpart("file"))
+-- print(pathpart("dir/file"))
+-- print(pathpart("/dir/file"))
+-- print(basename("file"))
+-- print(basename("dir/file"))
+-- print(basename("/dir/file"))
+
+local pattern = (noslashes^0 * slashes^1)^0 * Cs((1-suffix)^1) * suffix^0
+
+local function nameonly(name)
+    return name and lpegmatch(pattern,name) or name
+end
+
+local pattern = (noslashes^0 * slashes)^0 * (noperiod^1 * period)^1 * C(noperiod^1) * -1
+
+local function suffixonly(name)
+    return name and lpegmatch(pattern,name) or ""
+end
+
+file.pathpart   = pathpart
+file.basename   = basename
+file.nameonly   = nameonly
+file.suffixonly = suffixonly
+file.suffix     = suffixonly
+
+file.dirname    = pathpart   -- obsolete
+file.extname    = suffixonly -- obsolete
+
+-- actually these are schemes
+
+local drive  = C(R("az","AZ")) * colon
+local path   = C((noslashes^0 * slashes)^0)
+local suffix = period * C(P(1-period)^0 * P(-1))
+local base   = C((1-suffix)^0)
+local rest   = C(P(1)^0)
+
+drive  = drive  + Cc("")
+path   = path   + Cc("")
+base   = base   + Cc("")
+suffix = suffix + Cc("")
+
+local pattern_a =   drive * path  *   base * suffix
+local pattern_b =           path  *   base * suffix
+local pattern_c = C(drive * path) * C(base * suffix) -- trick: two extra captures
+local pattern_d =           path  *   rest
+
+function file.splitname(str,splitdrive)
+    if not str then
+        -- error
+    elseif splitdrive then
+        return lpegmatch(pattern_a,str) -- returns drive, path, base, suffix
     else
-        return filename
+        return lpegmatch(pattern_b,str) -- returns path, base, suffix
     end
 end
 
-function file.replacesuffix(filename, suffix)
-    return (gsub(filename,"%.[%a%d]+$","")) .. "." .. suffix
+function file.splitbase(str)
+    return str and lpegmatch(pattern_d,str) -- returns path, base+suffix
 end
 
-function file.dirname(name,default)
-    return match(name,"^(.+)[/\\].-$") or (default or "")
+---- stripslash = C((1 - P("/")^1*P(-1))^0)
+
+function file.nametotable(str,splitdrive)
+    if str then
+        local path, drive, subpath, name, base, suffix = lpegmatch(pattern_c,str)
+     -- if path ~= "" then
+     --     path = lpegmatch(stripslash,path) -- unfortunate hack, maybe this becomes default
+     -- end
+        if splitdrive then
+            return {
+                path    = path,
+                drive   = drive,
+                subpath = subpath,
+                name    = name,
+                base    = base,
+                suffix  = suffix,
+            }
+        else
+            return {
+                path    = path,
+                name    = name,
+                base    = base,
+                suffix  = suffix,
+            }
+        end
+    end
 end
 
-function file.basename(name)
-    return match(name,"^.+[/\\](.-)$") or name
+-- print(file.splitname("file"))
+-- print(file.splitname("dir/file"))
+-- print(file.splitname("/dir/file"))
+-- print(file.splitname("file"))
+-- print(file.splitname("dir/file"))
+-- print(file.splitname("/dir/file"))
+
+-- inspect(file.nametotable("file.ext"))
+-- inspect(file.nametotable("dir/file.ext"))
+-- inspect(file.nametotable("/dir/file.ext"))
+-- inspect(file.nametotable("file.ext"))
+-- inspect(file.nametotable("dir/file.ext"))
+-- inspect(file.nametotable("/dir/file.ext"))
+
+----- pattern = Cs(((period * noperiod^1 * -1) / "" + 1)^1)
+local pattern = Cs(((period * (1-period-slashes)^1 * -1) / "" + 1)^1)
+
+function file.removesuffix(name)
+    return name and lpegmatch(pattern,name)
 end
 
-function file.nameonly(name)
-    return (gsub(match(name,"^.+[/\\](.-)$") or name,"%..*$",""))
+-- local pattern = (noslashes^0 * slashes)^0 * (noperiod^1 * period)^1 * Cp() * noperiod^1 * -1
+--
+-- function file.addsuffix(name, suffix)
+--     local p = lpegmatch(pattern,name)
+--     if p then
+--         return name
+--     else
+--         return name .. "." .. suffix
+--     end
+-- end
+
+local suffix  = period/"" * (1-period-slashes)^1 * -1
+local pattern = Cs((noslashes^0 * slashes^1)^0 * ((1-suffix)^1)) * Cs(suffix)
+
+function file.addsuffix(filename,suffix,criterium)
+    if not filename or not suffix or suffix == "" then
+        return filename
+    elseif criterium == true then
+        return filename .. "." .. suffix
+    elseif not criterium then
+        local n, s = lpegmatch(pattern,filename)
+        if not s or s == "" then
+            return filename .. "." .. suffix
+        else
+            return filename
+        end
+    else
+        local n, s = lpegmatch(pattern,filename)
+        if s and s ~= "" then
+            local t = type(criterium)
+            if t == "table" then
+                -- keep if in criterium
+                for i=1,#criterium do
+                    if s == criterium[i] then
+                        return filename
+                    end
+                end
+            elseif t == "string" then
+                -- keep if criterium
+                if s == criterium then
+                    return filename
+                end
+            end
+        end
+        return (n or filename) .. "." .. suffix
+    end
 end
 
-function file.extname(name,default)
-    return match(name,"^.+%.([^/\\]-)$") or default or ""
+-- print("1 " .. file.addsuffix("name","new")                   .. " -> name.new")
+-- print("2 " .. file.addsuffix("name.old","new")               .. " -> name.old")
+-- print("3 " .. file.addsuffix("name.old","new",true)          .. " -> name.old.new")
+-- print("4 " .. file.addsuffix("name.old","new","new")         .. " -> name.new")
+-- print("5 " .. file.addsuffix("name.old","new","old")         .. " -> name.old")
+-- print("6 " .. file.addsuffix("name.old","new","foo")         .. " -> name.new")
+-- print("7 " .. file.addsuffix("name.old","new",{"foo","bar"}) .. " -> name.new")
+-- print("8 " .. file.addsuffix("name.old","new",{"old","bar"}) .. " -> name.old")
+
+local suffix  = period * (1-period-slashes)^1 * -1
+local pattern = Cs((1-suffix)^0)
+
+function file.replacesuffix(name,suffix)
+    if name and suffix and suffix ~= "" then
+        return lpegmatch(pattern,name) .. "." .. suffix
+    else
+        return name
+    end
 end
 
-file.suffix = file.extname
+--
 
---~ function file.join(...)
---~     local pth = concat({...},"/")
---~     pth = gsub(pth,"\\","/")
---~     local a, b = match(pth,"^(.*://)(.*)$")
---~     if a and b then
---~         return a .. gsub(b,"//+","/")
---~     end
---~     a, b = match(pth,"^(//)(.*)$")
---~     if a and b then
---~         return a .. gsub(b,"//+","/")
---~     end
---~     return (gsub(pth,"//+","/"))
---~ end
+local reslasher = lpeg.replacer(P("\\"),"/")
 
-local trick_1 = char(1)
-local trick_2 = "^" .. trick_1 .. "/+"
+function file.reslash(str)
+    return str and lpegmatch(reslasher,str)
+end
+
+-- We should be able to use:
+--
+-- local writable = P(1) * P("w") * Cc(true)
+--
+-- function file.is_writable(name)
+--     local a = attributes(name) or attributes(pathpart(name,"."))
+--     return a and lpegmatch(writable,a.permissions) or false
+-- end
+--
+-- But after some testing Taco and I came up with the more robust
+-- variant:
+
+function file.is_writable(name)
+    if not name then
+        -- error
+    elseif lfs.isdir(name) then
+        name = name .. "/m_t_x_t_e_s_t.tmp"
+        local f = io.open(name,"wb")
+        if f then
+            f:close()
+            os.remove(name)
+            return true
+        end
+    elseif lfs.isfile(name) then
+        local f = io.open(name,"ab")
+        if f then
+            f:close()
+            return true
+        end
+    else
+        local f = io.open(name,"ab")
+        if f then
+            f:close()
+            os.remove(name)
+            return true
+        end
+    end
+    return false
+end
+
+local readable = P("r") * Cc(true)
+
+function file.is_readable(name)
+    if name then
+        local a = attributes(name)
+        return a and lpegmatch(readable,a.permissions) or false
+    else
+        return false
+    end
+end
+
+file.isreadable = file.is_readable -- depricated
+file.iswritable = file.is_writable -- depricated
+
+function file.size(name)
+    if name then
+        local a = attributes(name)
+        return a and a.size or 0
+    else
+        return 0
+    end
+end
+
+function file.splitpath(str,separator) -- string .. reslash is a bonus (we could do a direct split)
+    return str and checkedsplit(lpegmatch(reslasher,str),separator or io.pathseparator)
+end
+
+function file.joinpath(tab,separator) -- table
+    return tab and concat(tab,separator or io.pathseparator) -- can have trailing //
+end
+
+local stripper  = Cs(P(fwslash)^0/"" * reslasher)
+local isnetwork = fwslash * fwslash * (1-fwslash) + (1-fwslash-colon)^1 * colon
+local isroot    = fwslash^1 * -1
+local hasroot   = fwslash^1
+
+local deslasher = lpeg.replacer(S("\\/")^1,"/")
+
+-- If we have a network or prefix then there is a change that we end up with two
+-- // in the middle ... we could prevent this if we (1) expand prefixes: and (2)
+-- split and rebuild as url. Of course we could assume no network paths (which
+-- makes sense) adn assume either mapped drives (windows) or mounts (unix) but
+-- then we still have to deal with urls ... anyhow, multiple // are never a real
+-- problem but just ugly.
 
 function file.join(...)
     local lst = { ... }
-    local a, b = lst[1], lst[2]
-    if a == "" then
-        lst[1] = trick_1
-    elseif b and find(a,"^/+$") and find(b,"^/") then
-        lst[1] = ""
-        lst[2] = gsub(b,"^/+","")
-    end
-    local pth = concat(lst,"/")
-    pth = gsub(pth,"\\","/")
-    local a, b = match(pth,"^(.*://)(.*)$")
-    if a and b then
-        return a .. gsub(b,"//+","/")
-    end
-    a, b = match(pth,"^(//)(.*)$")
-    if a and b then
-        return a .. gsub(b,"//+","/")
-    end
-    pth = gsub(pth,trick_2,"")
-    return (gsub(pth,"//+","/"))
-end
-
---~ print(file.join("//","/y"))
---~ print(file.join("/","/y"))
---~ print(file.join("","/y"))
---~ print(file.join("/x/","/y"))
---~ print(file.join("x/","/y"))
---~ print(file.join("http://","/y"))
---~ print(file.join("http://a","/y"))
---~ print(file.join("http:///a","/y"))
---~ print(file.join("//nas-1","/y"))
-
-function file.iswritable(name)
-    local a = lfs.attributes(name) or lfs.attributes(file.dirname(name,"."))
-    return a and sub(a.permissions,2,2) == "w"
-end
-
-function file.isreadable(name)
-    local a = lfs.attributes(name)
-    return a and sub(a.permissions,1,1) == "r"
-end
-
-file.is_readable = file.isreadable
-file.is_writable = file.iswritable
-
--- todo: lpeg
-
---~ function file.split_path(str)
---~     local t = { }
---~     str = gsub(str,"\\", "/")
---~     str = gsub(str,"(%a):([;/])", "%1\001%2")
---~     for name in gmatch(str,"([^;:]+)") do
---~         if name ~= "" then
---~             t[#t+1] = gsub(name,"\001",":")
---~         end
---~     end
---~     return t
---~ end
-
-local checkedsplit = string.checkedsplit
-
-function file.split_path(str,separator)
-    str = gsub(str,"\\","/")
-    return checkedsplit(str,separator or io.pathseparator)
-end
-
-function file.join_path(tab)
-    return concat(tab,io.pathseparator) -- can have trailing //
-end
-
--- we can hash them weakly
-
-function file.collapse_path(str)
-    str = gsub(str,"\\","/")
-    if find(str,"/") then
-        str = gsub(str,"^%./",(gsub(lfs.currentdir(),"\\","/")) .. "/") -- ./xx in qualified
-        str = gsub(str,"/%./","/")
-        local n, m = 1, 1
-        while n > 0 or m > 0 do
-            str, n = gsub(str,"[^/%.]+/%.%.$","")
-            str, m = gsub(str,"[^/%.]+/%.%./","")
+    local one = lst[1]
+    if lpegmatch(isnetwork,one) then
+        local two = lpegmatch(deslasher,concat(lst,"/",2))
+        return one .. "/" .. two
+    elseif lpegmatch(isroot,one) then
+        local two = lpegmatch(deslasher,concat(lst,"/",2))
+        if lpegmatch(hasroot,two) then
+            return two
+        else
+            return "/" .. two
         end
-        str = gsub(str,"([^/])/$","%1")
-    --  str = gsub(str,"^%./","") -- ./xx in qualified
-        str = gsub(str,"/%.$","")
+    elseif one == "" then
+        return lpegmatch(stripper,concat(lst,"/",2))
+    else
+        return lpegmatch(deslasher,concat(lst,"/"))
     end
-    if str == "" then str = "." end
-    return str
 end
 
---~ print(file.collapse_path("/a"))
---~ print(file.collapse_path("a/./b/.."))
---~ print(file.collapse_path("a/aa/../b/bb"))
---~ print(file.collapse_path("a/../.."))
---~ print(file.collapse_path("a/.././././b/.."))
---~ print(file.collapse_path("a/./././b/.."))
---~ print(file.collapse_path("a/b/c/../.."))
+-- print(file.join("c:/whatever","name"))
+-- print(file.join("//","/y"))
+-- print(file.join("/","/y"))
+-- print(file.join("","/y"))
+-- print(file.join("/x/","/y"))
+-- print(file.join("x/","/y"))
+-- print(file.join("http://","/y"))
+-- print(file.join("http://a","/y"))
+-- print(file.join("http:///a","/y"))
+-- print(file.join("//nas-1","/y"))
 
-function file.robustname(str)
-    return (gsub(str,"[^%a%d%/%-%.\\]+","-"))
+-- The previous one fails on "a.b/c"  so Taco came up with a split based
+-- variant. After some skyping we got it sort of compatible with the old
+-- one. After that the anchoring to currentdir was added in a better way.
+-- Of course there are some optimizations too. Finally we had to deal with
+-- windows drive prefixes and things like sys://. Eventually gsubs and
+-- finds were replaced by lpegs.
+
+local drivespec    = R("az","AZ")^1 * colon
+local anchors      = fwslash + drivespec
+local untouched    = periods + (1-period)^1 * P(-1)
+local splitstarter = (Cs(drivespec * (bwslash/"/" + fwslash)^0) + Cc(false)) * Ct(lpeg.splitat(S("/\\")^1))
+local absolute     = fwslash
+
+function file.collapsepath(str,anchor)
+    if not str then
+        return
+    end
+    if anchor and not lpegmatch(anchors,str) then
+        str = getcurrentdir() .. "/" .. str
+    end
+    if str == "" or str =="." then
+        return "."
+    elseif lpegmatch(untouched,str) then
+        return lpegmatch(reslasher,str)
+    end
+    local starter, oldelements = lpegmatch(splitstarter,str)
+    local newelements = { }
+    local i = #oldelements
+    while i > 0 do
+        local element = oldelements[i]
+        if element == '.' then
+            -- do nothing
+        elseif element == '..' then
+            local n = i - 1
+            while n > 0 do
+                local element = oldelements[n]
+                if element ~= '..' and element ~= '.' then
+                    oldelements[n] = '.'
+                    break
+                else
+                    n = n - 1
+                end
+             end
+            if n < 1 then
+               insert(newelements,1,'..')
+            end
+        elseif element ~= "" then
+            insert(newelements,1,element)
+        end
+        i = i - 1
+    end
+    if #newelements == 0 then
+        return starter or "."
+    elseif starter then
+        return starter .. concat(newelements, '/')
+    elseif lpegmatch(absolute,str) then
+        return "/" .. concat(newelements,'/')
+    else
+        return concat(newelements, '/')
+    end
+end
+
+-- local function test(str)
+--    print(string.format("%-20s %-15s %-15s",str,file.collapsepath(str),file.collapsepath(str,true)))
+-- end
+-- test("a/b.c/d") test("b.c/d") test("b.c/..")
+-- test("/") test("c:/..") test("sys://..")
+-- test("") test("./") test(".") test("..") test("./..") test("../..")
+-- test("a") test("./a") test("/a") test("a/../..")
+-- test("a/./b/..") test("a/aa/../b/bb") test("a/.././././b/..") test("a/./././b/..")
+-- test("a/b/c/../..") test("./a/b/c/../..") test("a/b/c/../..")
+
+local validchars = R("az","09","AZ","--","..")
+local pattern_a  = lpeg.replacer(1-validchars)
+local pattern_a  = Cs((validchars + P(1)/"-")^1)
+local whatever   = P("-")^0 / ""
+local pattern_b  = Cs(whatever * (1 - whatever * -1)^1)
+
+function file.robustname(str,strict)
+    if str then
+        str = lpegmatch(pattern_a,str) or str
+        if strict then
+            return lpegmatch(pattern_b,str) or str -- two step is cleaner (less backtracking)
+        else
+            return str
+        end
+    end
 end
 
 file.readdata = io.loaddata
 file.savedata = io.savedata
 
 function file.copy(oldname,newname)
-    file.savedata(newname,io.loaddata(oldname))
+    if oldname and newname then
+        local data = io.loaddata(oldname)
+        if data and data ~= "" then
+            file.savedata(newname,data)
+        end
+    end
 end
-
--- lpeg variants, slightly faster, not always
-
---~ local period    = lpeg.P(".")
---~ local slashes   = lpeg.S("\\/")
---~ local noperiod  = 1-period
---~ local noslashes = 1-slashes
---~ local name      = noperiod^1
-
---~ local pattern = (noslashes^0 * slashes)^0 * (noperiod^1 * period)^1 * lpeg.C(noperiod^1) * -1
-
---~ function file.extname(name)
---~     return lpegmatch(pattern,name) or ""
---~ end
-
---~ local pattern = lpeg.Cs(((period * noperiod^1 * -1)/"" + 1)^1)
-
---~ function file.removesuffix(name)
---~     return lpegmatch(pattern,name)
---~ end
-
---~ local pattern = (noslashes^0 * slashes)^1 * lpeg.C(noslashes^1) * -1
-
---~ function file.basename(name)
---~     return lpegmatch(pattern,name) or name
---~ end
-
---~ local pattern = (noslashes^0 * slashes)^1 * lpeg.Cp() * noslashes^1 * -1
-
---~ function file.dirname(name)
---~     local p = lpegmatch(pattern,name)
---~     if p then
---~         return sub(name,1,p-2)
---~     else
---~         return ""
---~     end
---~ end
-
---~ local pattern = (noslashes^0 * slashes)^0 * (noperiod^1 * period)^1 * lpeg.Cp() * noperiod^1 * -1
-
---~ function file.addsuffix(name, suffix)
---~     local p = lpegmatch(pattern,name)
---~     if p then
---~         return name
---~     else
---~         return name .. "." .. suffix
---~     end
---~ end
-
---~ local pattern = (noslashes^0 * slashes)^0 * (noperiod^1 * period)^1 * lpeg.Cp() * noperiod^1 * -1
-
---~ function file.replacesuffix(name,suffix)
---~     local p = lpegmatch(pattern,name)
---~     if p then
---~         return sub(name,1,p-2) .. "." .. suffix
---~     else
---~         return name .. "." .. suffix
---~     end
---~ end
-
---~ local pattern = (noslashes^0 * slashes)^0 * lpeg.Cp() * ((noperiod^1 * period)^1 * lpeg.Cp() + lpeg.P(true)) * noperiod^1 * -1
-
---~ function file.nameonly(name)
---~     local a, b = lpegmatch(pattern,name)
---~     if b then
---~         return sub(name,a,b-2)
---~     elseif a then
---~         return sub(name,a)
---~     else
---~         return name
---~     end
---~ end
-
---~ local test = file.extname
---~ local test = file.basename
---~ local test = file.dirname
---~ local test = file.addsuffix
---~ local test = file.replacesuffix
---~ local test = file.nameonly
-
---~ print(1,test("./a/b/c/abd.def.xxx","!!!"))
---~ print(2,test("./../b/c/abd.def.xxx","!!!"))
---~ print(3,test("a/b/c/abd.def.xxx","!!!"))
---~ print(4,test("a/b/c/def.xxx","!!!"))
---~ print(5,test("a/b/c/def","!!!"))
---~ print(6,test("def","!!!"))
---~ print(7,test("def.xxx","!!!"))
-
---~ local tim = os.clock() for i=1,250000 do local ext = test("abd.def.xxx","!!!") end print(os.clock()-tim)
 
 -- also rewrite previous
 
-local letter    = lpeg.R("az","AZ") + lpeg.S("_-+")
-local separator = lpeg.P("://")
+local letter    = R("az","AZ") + S("_-+")
+local separator = P("://")
 
-local qualified = lpeg.P(".")^0 * lpeg.P("/") + letter*lpeg.P(":") + letter^1*separator + letter^1 * lpeg.P("/")
-local rootbased = lpeg.P("/") + letter*lpeg.P(":")
+local qualified = period^0 * fwslash
+                + letter   * colon
+                + letter^1 * separator
+                + letter^1 * fwslash
+local rootbased = fwslash
+                + letter * colon
+
+lpeg.patterns.qualified = qualified
+lpeg.patterns.rootbased = rootbased
 
 -- ./name ../name  /name c: :// name/name
 
 function file.is_qualified_path(filename)
-    return lpegmatch(qualified,filename) ~= nil
+    return filename and lpegmatch(qualified,filename) ~= nil
 end
 
 function file.is_rootbased_path(filename)
-    return lpegmatch(rootbased,filename) ~= nil
-end
-
-local slash  = lpeg.S("\\/")
-local period = lpeg.P(".")
-local drive  = lpeg.C(lpeg.R("az","AZ")) * lpeg.P(":")
-local path   = lpeg.C(((1-slash)^0 * slash)^0)
-local suffix = period * lpeg.C(lpeg.P(1-period)^0 * lpeg.P(-1))
-local base   = lpeg.C((1-suffix)^0)
-
-local pattern = (drive + lpeg.Cc("")) * (path + lpeg.Cc("")) * (base + lpeg.Cc("")) * (suffix + lpeg.Cc(""))
-
-function file.splitname(str) -- returns drive, path, base, suffix
-    return lpegmatch(pattern,str)
+    return filename and lpegmatch(rootbased,filename) ~= nil
 end
 
 -- function test(t) for k, v in next, t do print(v, "=>", file.splitname(v)) end end
@@ -304,11 +530,35 @@ end
 -- test { "/aa", "/aa/bb", "/aa/bb/cc", "/aa/bb/cc.dd", "/aa/bb/cc.dd.ee" }
 -- test { "aa", "aa/bb", "aa/bb/cc", "aa/bb/cc.dd", "aa/bb/cc.dd.ee" }
 
---~ -- todo:
---~
---~ if os.type == "windows" then
---~     local currentdir = lfs.currentdir
---~     function lfs.currentdir()
---~         return (gsub(currentdir(),"\\","/"))
---~     end
---~ end
+-- -- maybe:
+--
+-- if os.type == "windows" then
+--     local currentdir = getcurrentdir
+--     function getcurrentdir()
+--         return lpegmatch(reslasher,currentdir())
+--     end
+-- end
+
+-- for myself:
+
+function file.strip(name,dir)
+    if name then
+        local b, a = match(name,"^(.-)" .. dir .. "(.*)$")
+        return a ~= "" and a or name
+    end
+end
+
+-- local debuglist = {
+--     "pathpart", "basename", "nameonly", "suffixonly", "suffix", "dirname", "extname",
+--     "addsuffix", "removesuffix", "replacesuffix", "join",
+--     "strip","collapsepath", "joinpath", "splitpath",
+-- }
+
+-- for i=1,#debuglist do
+--     local name = debuglist[i]
+--     local f = file[name]
+--     file[name] = function(...)
+--         print(name,f(...))
+--         return f(...)
+--     end
+-- end

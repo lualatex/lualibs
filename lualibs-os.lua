@@ -6,31 +6,129 @@ if not modules then modules = { } end modules ['l-os'] = {
     license   = "see context related readme files"
 }
 
+-- This file deals with some operating system issues. Please don't bother me
+-- with the pros and cons of operating systems as they all have their flaws
+-- and benefits. Bashing one of them won't help solving problems and fixing
+-- bugs faster and is a waste of time and energy.
+--
+-- path separators: / or \ ... we can use / everywhere
+-- suffixes       : dll so exe <none> ... no big deal
+-- quotes         : we can use "" in most cases
+-- expansion      : unless "" are used * might give side effects
+-- piping/threads : somewhat different for each os
+-- locations      : specific user file locations and settings can change over time
+--
+-- os.type     : windows | unix (new, we already guessed os.platform)
+-- os.name     : windows | msdos | linux | macosx | solaris | .. | generic (new)
+-- os.platform : extended os.name with architecture
+
+-- os.sleep() => socket.sleep()
+-- math.randomseed(tonumber(string.sub(string.reverse(tostring(math.floor(socket.gettime()*10000))),1,6)))
+
 -- maybe build io.flush in os.execute
 
-local find, format, gsub = string.find, string.format, string.gsub
-local random, ceil = math.random, math.ceil
+local os = os
+local date, time = os.date, os.time
+local find, format, gsub, upper, gmatch = string.find, string.format, string.gsub, string.upper, string.gmatch
+local concat = table.concat
+local random, ceil, randomseed = math.random, math.ceil, math.randomseed
+local rawget, rawset, type, getmetatable, setmetatable, tonumber, tostring = rawget, rawset, type, getmetatable, setmetatable, tonumber, tostring
 
-local execute, spawn, exec, ioflush = os.execute, os.spawn or os.execute, os.exec or os.execute, io.flush
+-- The following code permits traversing the environment table, at least
+-- in luatex. Internally all environment names are uppercase.
+
+-- The randomseed in Lua is not that random, although this depends on the operating system as well
+-- as the binary (Luatex is normally okay). But to be sure we set the seed anyway.
+
+math.initialseed = tonumber(string.sub(string.reverse(tostring(ceil(socket and socket.gettime()*10000 or time()))),1,6))
+
+randomseed(math.initialseed)
+
+if not os.__getenv__ then
+
+    os.__getenv__ = os.getenv
+    os.__setenv__ = os.setenv
+
+    if os.env then
+
+        local osgetenv  = os.getenv
+        local ossetenv  = os.setenv
+        local osenv     = os.env      local _ = osenv.PATH -- initialize the table
+
+        function os.setenv(k,v)
+            if v == nil then
+                v = ""
+            end
+            local K = upper(k)
+            osenv[K] = v
+            if type(v) == "table" then
+                v = concat(v,";") -- path
+            end
+            ossetenv(K,v)
+        end
+
+        function os.getenv(k)
+            local K = upper(k)
+            local v = osenv[K] or osenv[k] or osgetenv(K) or osgetenv(k)
+            if v == "" then
+                return nil
+            else
+                return v
+            end
+        end
+
+    else
+
+        local ossetenv  = os.setenv
+        local osgetenv  = os.getenv
+        local osenv     = { }
+
+        function os.setenv(k,v)
+            if v == nil then
+                v = ""
+            end
+            local K = upper(k)
+            osenv[K] = v
+        end
+
+        function os.getenv(k)
+            local K = upper(k)
+            local v = osenv[K] or osgetenv(K) or osgetenv(k)
+            if v == "" then
+                return nil
+            else
+                return v
+            end
+        end
+
+        local function __index(t,k)
+            return os.getenv(k)
+        end
+        local function __newindex(t,k,v)
+            os.setenv(k,v)
+        end
+
+        os.env = { }
+
+        setmetatable(os.env, { __index = __index, __newindex = __newindex } )
+
+    end
+
+end
+
+-- end of environment hack
+
+local execute, spawn, exec, iopopen, ioflush = os.execute, os.spawn or os.execute, os.exec or os.execute, io.popen, io.flush
 
 function os.execute(...) ioflush() return execute(...) end
 function os.spawn  (...) ioflush() return spawn  (...) end
 function os.exec   (...) ioflush() return exec   (...) end
+function io.popen  (...) ioflush() return iopopen(...) end
 
 function os.resultof(command)
-    ioflush() -- else messed up logging
     local handle = io.popen(command,"r")
-    if not handle then
-    --  print("unknown command '".. command .. "' in os.resultof")
-        return ""
-    else
-        return handle:read("*all") or ""
-    end
+    return handle and handle:read("*all") or ""
 end
-
---~ os.type     : windows | unix (new, we already guessed os.platform)
---~ os.name     : windows | msdos | linux | macosx | solaris | .. | generic (new)
---~ os.platform : extended os.name with architecture
 
 if not io.fileseparator then
     if find(os.getenv("PATH"),";") then
@@ -44,20 +142,22 @@ os.type = os.type or (io.pathseparator == ";"       and "windows") or "unix"
 os.name = os.name or (os.type          == "windows" and "mswin"  ) or "linux"
 
 if os.type == "windows" then
-    os.libsuffix, os.binsuffix = 'dll', 'exe'
+    os.libsuffix, os.binsuffix, os.binsuffixes = 'dll', 'exe', { 'exe', 'cmd', 'bat' }
 else
-    os.libsuffix, os.binsuffix = 'so', ''
+    os.libsuffix, os.binsuffix, os.binsuffixes = 'so', '', { '' }
 end
+
+local launchers = {
+    windows = "start %s",
+    macosx  = "open %s",
+    unix    = "$BROWSER %s &> /dev/null &",
+}
 
 function os.launch(str)
-    if os.type == "windows" then
-        os.execute("start " .. str) -- os.spawn ?
-    else
-        os.execute(str .. " &")     -- os.spawn ?
-    end
+    os.execute(format(launchers[os.name] or launchers.unix,str))
 end
 
-if not os.times then
+if not os.times then -- ?
     -- utime  = user time
     -- stime  = system time
     -- cutime = children user time
@@ -89,36 +189,14 @@ end
 -- no need for function anymore as we have more clever code and helpers now
 -- this metatable trickery might as well disappear
 
-os.resolvers = os.resolvers or { }
+os.resolvers = os.resolvers or { } -- will become private
 
 local resolvers = os.resolvers
 
-local osmt = getmetatable(os) or { __index = function(t,k) t[k] = "unset" return "unset" end } -- maybe nil
-local osix = osmt.__index
-
-osmt.__index = function(t,k)
-    return (resolvers[k] or osix)(t,k)
-end
-
-setmetatable(os,osmt)
-
-if not os.setenv then
-
-    -- we still store them but they won't be seen in
-    -- child processes although we might pass them some day
-    -- using command concatination
-
-    local env, getenv = { }, os.getenv
-
-    function os.setenv(k,v)
-        env[k] = v
-    end
-
-    function os.getenv(k)
-        return env[k] or getenv(k)
-    end
-
-end
+setmetatable(os, { __index = function(t,k)
+    local r = resolvers[k]
+    return r and r(t,k) or nil -- no memoize
+end })
 
 -- we can use HOSTTYPE on some platforms
 
@@ -159,7 +237,7 @@ elseif os.type == "windows" then
 elseif name == "linux" then
 
     function os.resolvers.platform(t,k)
-        -- we sometims have HOSTTYPE set so let's check that first
+        -- we sometimes have HOSTTYPE set so let's check that first
         local platform, architecture = "", os.getenv("HOSTTYPE") or os.resultof("uname -m") or ""
         if find(architecture,"x86_64") then
             platform = "linux-64"
@@ -237,10 +315,10 @@ elseif name == "freebsd" then
 elseif name == "kfreebsd" then
 
     function os.resolvers.platform(t,k)
-        -- we sometims have HOSTTYPE set so let's check that first
+        -- we sometimes have HOSTTYPE set so let's check that first
         local platform, architecture = "", os.getenv("HOSTTYPE") or os.resultof("uname -m") or ""
         if find(architecture,"x86_64") then
-            platform = "kfreebsd-64"
+            platform = "kfreebsd-amd64"
         else
             platform = "kfreebsd-i386"
         end
@@ -288,7 +366,7 @@ end
 local d
 
 function os.timezone(delta)
-    d = d or tonumber(tonumber(os.date("%H")-os.date("!%H")))
+    d = d or tonumber(tonumber(date("%H")-date("!%H")))
     if delta then
         if d > 0 then
             return format("+%02i:00",d)
@@ -299,3 +377,86 @@ function os.timezone(delta)
         return 1
     end
 end
+
+local timeformat = format("%%s%s",os.timezone(true))
+local dateformat = "!%Y-%m-%d %H:%M:%S"
+
+function os.fulltime(t,default)
+    t = tonumber(t) or 0
+    if t > 0 then
+        -- valid time
+    elseif default then
+        return default
+    else
+        t = nil
+    end
+    return format(timeformat,date(dateformat,t))
+end
+
+local dateformat = "%Y-%m-%d %H:%M:%S"
+
+function os.localtime(t,default)
+    t = tonumber(t) or 0
+    if t > 0 then
+        -- valid time
+    elseif default then
+        return default
+    else
+        t = nil
+    end
+    return date(dateformat,t)
+end
+
+function os.converttime(t,default)
+    local t = tonumber(t)
+    if t and t > 0 then
+        return date(dateformat,t)
+    else
+        return default or "-"
+    end
+end
+
+local memory = { }
+
+local function which(filename)
+    local fullname = memory[filename]
+    if fullname == nil then
+        local suffix = file.suffix(filename)
+        local suffixes = suffix == "" and os.binsuffixes or { suffix }
+        for directory in gmatch(os.getenv("PATH"),"[^" .. io.pathseparator .."]+") do
+            local df = file.join(directory,filename)
+            for i=1,#suffixes do
+                local dfs = file.addsuffix(df,suffixes[i])
+                if io.exists(dfs) then
+                    fullname = dfs
+                    break
+                end
+            end
+        end
+        if not fullname then
+            fullname = false
+        end
+        memory[filename] = fullname
+    end
+    return fullname
+end
+
+os.which = which
+os.where = which
+
+function os.today()
+    return date("!*t") -- table with values
+end
+
+function os.now()
+    return date("!%Y-%m-%d %H:%M:%S") -- 2011-12-04 14:59:12
+end
+
+if not os.sleep and socket then
+    os.sleep = socket.sleep
+end
+
+-- print(os.which("inkscape.exe"))
+-- print(os.which("inkscape"))
+-- print(os.which("gs.exe"))
+-- print(os.which("ps2pdf"))

@@ -1,4 +1,4 @@
-if not modules then modules = { } end modules ['l-dimen'] = {
+if not modules then modules = { } end modules ['util-dim'] = {
     version   = 1.001,
     comment   = "support for dimensions",
     author    = "Hans Hagen, PRAGMA-ADE, Hasselt NL",
@@ -16,14 +16,21 @@ table.</p>
 --ldx]]--
 
 local format, match, gsub, type, setmetatable = string.format, string.match, string.gsub, type, setmetatable
-local P, S, R, Cc, lpegmatch = lpeg.P, lpeg.S, lpeg.R, lpeg.Cc, lpeg.match
+local P, S, R, Cc, C, lpegmatch = lpeg.P, lpeg.S, lpeg.R, lpeg.Cc, lpeg.C, lpeg.match
+
+local allocate          = utilities.storage.allocate
+local setmetatableindex = table.setmetatableindex
+local formatters        = string.formatters
+
+--this might become another namespace
 
 number = number or { }
+local number = number
 
 number.tonumberf = function(n) return match(format("%.20f",n),"(.-0?)0*$") end -- one zero too much but alas
 number.tonumberg = function(n) return       format("%.20g",n)              end
 
-local dimenfactors = {
+local dimenfactors = allocate {
     ["pt"] =             1/65536,
     ["in"] = (  100/ 7227)/65536,
     ["cm"] = (  254/ 7227)/65536,
@@ -80,14 +87,18 @@ local dimenfactors = {
 format (string) is implemented using this table.</p>
 --ldx]]--
 
--- was:
 
-local function todimen(n,unit,fmt)
+local function numbertodimen(n,unit,fmt)
     if type(n) == 'string' then
         return n
     else
         unit = unit or 'pt'
-        return format(fmt or "%s%s",n*dimenfactors[unit],unit)
+        if not fmt then
+            fmt = "%s%s"
+        elseif fmt == true then
+            fmt = "%0.5f%s"
+        end
+        return format(fmt,n*dimenfactors[unit],unit)
      -- if fmt then
      --     return format(fmt,n*dimenfactors[unit],unit)
      -- else
@@ -101,21 +112,21 @@ end
 --ldx]]--
 
 number.maxdimen     = 1073741823
-number.todimen      = todimen
+number.todimen      = numbertodimen
 number.dimenfactors = dimenfactors
 
-function number.topoints      (n) return todimen(n,"pt") end
-function number.toinches      (n) return todimen(n,"in") end
-function number.tocentimeters (n) return todimen(n,"cm") end
-function number.tomillimeters (n) return todimen(n,"mm") end
-function number.toscaledpoints(n) return todimen(n,"sp") end
-function number.toscaledpoints(n) return      n .. "sp"  end
-function number.tobasepoints  (n) return todimen(n,"bp") end
-function number.topicas       (n) return todimen(n "pc") end
-function number.todidots      (n) return todimen(n,"dd") end
-function number.tociceros     (n) return todimen(n,"cc") end
-function number.tonewdidots   (n) return todimen(n,"nd") end
-function number.tonewciceros  (n) return todimen(n,"nc") end
+function number.topoints      (n,fmt) return numbertodimen(n,"pt",fmt) end
+function number.toinches      (n,fmt) return numbertodimen(n,"in",fmt) end
+function number.tocentimeters (n,fmt) return numbertodimen(n,"cm",fmt) end
+function number.tomillimeters (n,fmt) return numbertodimen(n,"mm",fmt) end
+function number.toscaledpoints(n,fmt) return numbertodimen(n,"sp",fmt) end
+function number.toscaledpoints(n)     return            n .. "sp"      end
+function number.tobasepoints  (n,fmt) return numbertodimen(n,"bp",fmt) end
+function number.topicas       (n,fmt) return numbertodimen(n "pc",fmt) end
+function number.todidots      (n,fmt) return numbertodimen(n,"dd",fmt) end
+function number.tociceros     (n,fmt) return numbertodimen(n,"cc",fmt) end
+function number.tonewdidots   (n,fmt) return numbertodimen(n,"nd",fmt) end
+function number.tonewciceros  (n,fmt) return numbertodimen(n,"nc",fmt) end
 
 --[[ldx--
 <p>More interesting it to implement a (sort of) dimen datatype, one
@@ -132,27 +143,40 @@ local dimenpair = amount/tonumber * (unit^1/dimenfactors + Cc(1)) -- tonumber is
 
 lpeg.patterns.dimenpair = dimenpair
 
+local splitter = amount/tonumber * C(unit^1)
+
+function number.splitdimen(str)
+    return lpegmatch(splitter,str)
+end
+
 --[[ldx--
 <p>We use a metatable to intercept errors. When no key is found in
 the table with factors, the metatable will be consulted for an
 alternative index function.</p>
 --ldx]]--
 
-local mt = { }  setmetatable(dimenfactors,mt)
-
-mt.__index = function(t,s)
+setmetatableindex(dimenfactors, function(t,s)
  -- error("wrong dimension: " .. (s or "?")) -- better a message
     return false
-end
+end)
 
-function string:todimen()
-    if type(self) == "number" then
-        return self
-    else
-        local value, unit = lpegmatch(dimenpair,self)
-        return value/unit
-    end
-end
+--[[ldx--
+<p>We redefine the following function later on, so we comment it
+here (which saves us bytecodes.</p>
+--ldx]]--
+
+-- function string.todimen(str)
+--     if type(str) == "number" then
+--         return str
+--     else
+--         local value, unit = lpegmatch(dimenpair,str)
+--         return value/unit
+--     end
+-- end
+--
+-- local stringtodimen = string.todimen
+
+local stringtodimen -- assigned later (commenting saves bytecode)
 
 local amount = S("+-")^0 * R("09")^0 * S(".,")^0 * R("09")^0
 local unit   = P("pt") + P("cm") + P("mm") + P("sp") + P("bp") + P("in")  +
@@ -160,7 +184,7 @@ local unit   = P("pt") + P("cm") + P("mm") + P("sp") + P("bp") + P("in")  +
 
 local validdimen = amount * unit
 
-lpeg.patterns.validdimen = pattern
+lpeg.patterns.validdimen = validdimen
 
 --[[ldx--
 <p>This converter accepts calls like:</p>
@@ -172,12 +196,6 @@ string.todimen("10.0")
 string.todimen("10.0pt")
 string.todimen("10pt")
 string.todimen("10.0pt")
-</typing>
-
-<p>And of course the often more efficient:</p>
-
-<typing>
-somestring:todimen("12.3cm")
 </typing>
 
 <p>With this in place, we can now implement a proper datatype for dimensions, one
@@ -197,28 +215,28 @@ local dimensions = { }
 <p>The main (and globally) visible representation of a dimen is defined next: it is
 a one-element table. The unit that is returned from the match is normally a number
 (one of the previously defined factors) but we also accept functions. Later we will
-see why.</p>
+see why. This function is redefined later.</p>
 --ldx]]--
 
-function dimen(a)
-    if a then
-        local ta= type(a)
-        if ta == "string" then
-            local value, unit = lpegmatch(pattern,a)
-            if type(unit) == "function" then
-                k = value/unit()
-            else
-                k = value/unit
-            end
-            a = k
-        elseif ta == "table" then
-            a = a[1]
-        end
-        return setmetatable({ a }, dimensions)
-    else
-        return setmetatable({ 0 }, dimensions)
-    end
-end
+-- function dimen(a)
+--     if a then
+--         local ta= type(a)
+--         if ta == "string" then
+--             local value, unit = lpegmatch(pattern,a)
+--             if type(unit) == "function" then
+--                 k = value/unit()
+--             else
+--                 k = value/unit
+--             end
+--             a = k
+--         elseif ta == "table" then
+--             a = a[1]
+--         end
+--         return setmetatable({ a }, dimensions)
+--     else
+--         return setmetatable({ 0 }, dimensions)
+--     end
+-- end
 
 --[[ldx--
 <p>This function return a small hash with a metatable attached. It is
@@ -228,35 +246,35 @@ shared some of the code but for reasons of speed we don't.</p>
 
 function dimensions.__add(a, b)
     local ta, tb = type(a), type(b)
-    if ta == "string" then a = a:todimen() elseif ta == "table" then a = a[1] end
-    if tb == "string" then b = b:todimen() elseif tb == "table" then b = b[1] end
+    if ta == "string" then a = stringtodimen(a) elseif ta == "table" then a = a[1] end
+    if tb == "string" then b = stringtodimen(b) elseif tb == "table" then b = b[1] end
     return setmetatable({ a + b }, dimensions)
 end
 
 function dimensions.__sub(a, b)
     local ta, tb = type(a), type(b)
-    if ta == "string" then a = a:todimen() elseif ta == "table" then a = a[1] end
-    if tb == "string" then b = b:todimen() elseif tb == "table" then b = b[1] end
+    if ta == "string" then a = stringtodimen(a) elseif ta == "table" then a = a[1] end
+    if tb == "string" then b = stringtodimen(b) elseif tb == "table" then b = b[1] end
     return setmetatable({ a - b }, dimensions)
 end
 
 function dimensions.__mul(a, b)
     local ta, tb = type(a), type(b)
-    if ta == "string" then a = a:todimen() elseif ta == "table" then a = a[1] end
-    if tb == "string" then b = b:todimen() elseif tb == "table" then b = b[1] end
+    if ta == "string" then a = stringtodimen(a) elseif ta == "table" then a = a[1] end
+    if tb == "string" then b = stringtodimen(b) elseif tb == "table" then b = b[1] end
     return setmetatable({ a * b }, dimensions)
 end
 
 function dimensions.__div(a, b)
     local ta, tb = type(a), type(b)
-    if ta == "string" then a = a:todimen() elseif ta == "table" then a = a[1] end
-    if tb == "string" then b = b:todimen() elseif tb == "table" then b = b[1] end
+    if ta == "string" then a = stringtodimen(a) elseif ta == "table" then a = a[1] end
+    if tb == "string" then b = stringtodimen(b) elseif tb == "table" then b = b[1] end
     return setmetatable({ a / b }, dimensions)
 end
 
 function dimensions.__unm(a)
     local ta = type(a)
-    if ta == "string" then a = a:todimen() elseif ta == "table" then a = a[1] end
+    if ta == "string" then a = stringtodimen(a) elseif ta == "table" then a = a[1] end
     return setmetatable({ - a }, dimensions)
 end
 
@@ -321,23 +339,9 @@ is loaded, the relevant tables that hold the functions needed may not
 yet be available.</p>
 --ldx]]--
 
-function dimensions.texify()  -- todo: %
-    local fti, fc = fonts and fonts.ids and fonts.ids, font and font.current
-    if fti and fc then
-        dimenfactors["ex"] = function() return fti[fc()].ex_height end
-        dimenfactors["em"] = function() return fti[fc()].quad      end
-    else
-        dimenfactors["ex"] = 1/65536* 4 --  4pt
-        dimenfactors["em"] = 1/65536*10 -- 10pt
-    end
-end
-
---[[ldx--
-<p>In order to set the defaults we call this function now. At some point
-the macro package needs to make sure the function is called again.</p>
---ldx]]--
-
-dimensions.texify()
+   dimenfactors["ex"] =  4 * 1/65536 --   4pt
+   dimenfactors["em"] = 10 * 1/65536 --  10pt
+-- dimenfactors["%"]  =  4 * 1/65536 -- 400pt/100
 
 --[[ldx--
 <p>The previous code is rather efficient (also thanks to <l n='lpeg'/>) but we
@@ -389,27 +393,40 @@ function dimen(a)
     end
 end
 
-function string:todimen()
-    if type(self) == "number" then
-        return self
+function string.todimen(str) -- maybe use tex.sp when available
+    if type(str) == "number" then
+        return str
     else
-        local k = known[self]
+        local k = known[str]
         if not k then
-            local value, unit = lpegmatch(dimenpair,self)
+            local value, unit = lpegmatch(dimenpair,str)
             if value and unit then
-                k = value/unit
+                k = value/unit -- to be considered: round
             else
                 k = 0
             end
-            -- print(self,value,unit)
-            known[self] = k
+            -- print(str,value,unit)
+            known[str] = k
         end
         return k
     end
 end
 
+--~ local known = { }
+
+--~ function string.todimen(str) -- maybe use tex.sp
+--~     local k = known[str]
+--~     if not k then
+--~         k = tex.sp(str)
+--~         known[str] = k
+--~     end
+--~     return k
+--~ end
+
+stringtodimen = string.todimen -- local variable defined earlier
+
 function number.toscaled(d)
-    return format("0.5f",d/2^16)
+    return format("%0.5f",d/2^16)
 end
 
 --[[ldx--
@@ -421,12 +438,12 @@ probably use a hash instead of a one-element table.</p>
 <p>Goodie:s</p>
 --ldx]]--
 
-function number.percent(n) -- will be cleaned up once luatex 0.30 is out
-    local hsize = tex.hsize
-    if type(hsize) == "string" then
-        hsize = hsize:todimen()
+function number.percent(n,d) -- will be cleaned up once luatex 0.30 is out
+    d = d or tex.hsize
+    if type(d) == "string" then
+        d = stringtodimen(d)
     end
-    return (n/100) * hsize
+    return (n/100) * d
 end
 
 number["%"] = number.percent

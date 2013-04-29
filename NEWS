@@ -1,4 +1,9 @@
                         History of the lualibs package
+2012/10/19 v0.9/
+    * sync with ConTeXt beta 2012.10.17
+    * move some files to util-* prefix
+    * add util-sto util-lua util-sto util-jsn
+
 2011/01/20 v0.96
     * Fix computability with lfs in luatex 0.65
 

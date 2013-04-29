@@ -300,7 +300,7 @@ function string.splitlines(str)
     return lpegmatch(linesplitter,str)
 end
 
---~ lpeg.splitters = cache -- no longer public
+-- lpeg.splitters = cache -- no longer public
 
 local cache = { }
 

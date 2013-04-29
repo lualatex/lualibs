@@ -8,8 +8,9 @@ MODULES = $(wildcard lualibs-*.lua)
 # Files grouped by generation mode
 UNPACKED= lualibs.lua
 COMPILED = $(DOC_DTX)
-GENERATED = $(UNPACKED) $(DOC_DTX)
+GENERATED = $(UNPACKED) $(DOC_DTX) $(MERGED)
 SOURCE = $(DTX) $(MODULES) README Makefile NEWS
+MERGED = lualibs-basic-merged.lua lualibs-extended-merged.lua
 
 # Files grouped by installation location
 RUNFILES = $(UNPACKED) $(MODULES)
@@ -18,7 +19,7 @@ SRCFILES = $(DTX) $(SRC_TEX) Makefile
 
 # The following definitions should be equivalent
 # ALL_FILES = $(RUNFILES) $(DOCFILES) $(SRCFILES)
-ALL_FILES = $(GENERATED) $(SOURCE)
+ALL_FILES = $(GENERATED) $(SOURCE) $(MERGED)
 
 # Installation locations
 FORMAT = luatex
@@ -35,13 +36,15 @@ DO_TEX = tex --interaction=batchmode $< >/dev/null
 DO_PDFLATEX = pdflatex --interaction=batchmode $< >/dev/null
 DO_PDFLUALATEX = pdflualatex --interaction=batchmode $< >/dev/null
 DO_MAKEINDEX = makeindex -s gind.ist $(subst .dtx,,$<) >/dev/null 2>&1
+DO_PACKAGE = mtxrun --script package --merge $< >/dev/null
 
-all: $(GENERATED) $(DOC_TEX)
+all: $(GENERATED) $(DOC_TEX) $(MERGED)
 doc: $(COMPILED)
 unpack: $(UNPACKED)
 ctan: $(CTAN_ZIP)
 tds: $(TDS_ZIP)
 world: all ctan
+
 .PHONY: all doc unpack ctan tds world
 
 %.pdf: %.dtx
@@ -49,6 +52,9 @@ world: all ctan
 	$(DO_MAKEINDEX)
 	$(DO_PDFLATEX)
 	$(DO_PDFLATEX)
+
+%-merged.lua: %.lua
+	$(DO_PACKAGE)
 
 $(UNPACKED): lualibs.dtx
 	$(DO_TEX)
@@ -91,3 +97,4 @@ clean:
 mrproper: clean
 	@$(RM) -- $(GENERATED) $(ZIPS)
 
+merge: $(MERGED)

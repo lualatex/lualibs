@@ -1,29 +1,30 @@
---  This is file `lualibs.lua',
-module('lualibs', package.seeall)
+lualibs = lualibs or { }
 
-local lualibs_module = {
+lualibs.module_info = {
   name          = "lualibs",
-  version       = 1.01,
-  date          = "2013/04/10",
-  description   = "Lua additional functions.",
-  author        = "Hans Hagen, PRAGMA-ADE, Hasselt NL & Elie Roux",
+  version       = 2.00,
+  date          = "2013/04/30",
+  description   = "ConTeXt Lua standard libraries.",
+  author        = "Hans Hagen, PRAGMA-ADE, Hasselt NL & Elie Roux & Philipp Gesang",
   copyright     = "PRAGMA ADE / ConTeXt Development Team",
   license       = "See ConTeXt's mreadme.pdf for the license",
 }
 
-_G.config              = _G.config or { }
-_G.config.lualibs      = _G.config.lualibs or { }
-local lualibs          = _G.config.lualibs
+config           = config or { }
+config.lualibs   = config.lualibs or { }
 
-if lualibs.prefer_merged == nil then lualibs.prefer_merged = true end
-if lualibs.load_extended == nil then lualibs.load_extended = true end
-lualibs.verbose = lualibs.verbose == true or false
+if config.lualibs.prefer_merged == nil then
+  lualibs.prefer_merged = true
+end
+if config.lualibs.load_extended == nil then
+  lualibs.load_extended = true
+end
+config.lualibs.verbose = config.lualibs.verbose == true
 
-local lpeg, kpse = lpeg, kpse
-
-local dofile       = dofile
-local lpegmatch    = lpeg.match
-local stringformat = string.format
+local dofile        = dofile
+local kpsefind_file = kpse.find_file
+local stringformat  = string.format
+local texiowrit_nl  = texio.write_nl
 
 local find_file, error, warn, info
 do
@@ -31,10 +32,9 @@ do
   if luatexbase and luatexbase.provides_module then
     _error, _warn, _info = luatexbase.provides_module(lualibs_module)
   else
-    _error, _warn, _info = texio.write_nl, texio.write_nl, texio.write_nl -- stub
+    _error, _warn, _info = texiowrite_nl, texiowrite_nl, texiowrite_nl
   end
 
-  -- if lualibs.verbose then 
   if lualibs.verbose then
     error, warn, info = _error, _warn, _info
   else
@@ -48,12 +48,12 @@ if luatexbase and luatexbase.find_file then
   find_file = luatexbase.find_file
 else
   kpse.set_program_name"luatex"
-  find_file = kpse.find_file
+  find_file = kpsefind_file
 end
 
-loadmodule = _G.loadmodule or function (name, t)
+loadmodule = loadmodule or function (name, t)
   if not t then t = "library" end
-  local filepath  = kpse.find_file(name, "lua")
+  local filepath  = kpsefind_file(name, "lua")
   if not filepath or filepath == "" then
     warn(stringformat("Could not locate %s “%s”.", t, name))
     return false
@@ -67,10 +67,13 @@ lualibs.loadmodule = loadmodule
 The separation of the “basic” from the “extended” sets coincides with
 the split into luat-bas.mkiv and luat-lib.mkiv.
 --doc]]--
-loadmodule"lualibs-basic.lua"
-loadmodule"lualibs-compat.lua" --- restore stuff gone since v1.*
+if lualibs.basic_loaded ~= true then
+  loadmodule"lualibs-basic.lua"
+  loadmodule"lualibs-compat.lua" --- restore stuff gone since v1.*
+end
 
-if load_extended == true then
+if  lualibs.load_extended   == true
+and lualibs.extended_loaded ~= true then
   loadmodule"lualibs-extended.lua"
 end
 

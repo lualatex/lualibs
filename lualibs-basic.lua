@@ -1,21 +1,19 @@
---  This is file `lualibs-basic.lua',
-module('lualibs-basic', package.seeall)
+lualibs = lualibs or { }
 
 local lualibs_basic_module = {
   name          = "lualibs-basic",
-  version       = 1.01,
-  date          = "2013/04/10",
-  description   = "Basic Lua extensions, meta package.",
-  author        = "Hans Hagen, PRAGMA-ADE, Hasselt NL & Elie Roux",
+  version       = 2.00,
+  date          = "2013/04/30",
+  description   = "ConTeXt Lua libraries -- basic collection.",
+  author        = "Hans Hagen, PRAGMA-ADE, Hasselt NL & Elie Roux & Philipp Gesang",
   copyright     = "PRAGMA ADE / ConTeXt Development Team",
   license       = "See ConTeXt's mreadme.pdf for the license",
 }
 
-local lualibs = _G.config.lualibs
 local error, warn, info = lualibs.error, lualibs.warn, lualibs.info
 
-local loadmodule   = lualibs.loadmodule
-local stringformat = string.format
+local loadmodule      = lualibs.loadmodule
+local stringformat    = string.format
 
 local loaded = false
 if lualibs.prefer_merged then
@@ -46,9 +44,5 @@ if loaded == false then
   loadmodule("lualibs-set.lua")
 end
 
--- these don’t look much basic to me:
---l-pdfview.lua
---l-xml.lua
-
+lualibs.basic_loaded = true
 -- vim:tw=71:sw=2:ts=2:expandtab
---  End of File `lualibs.lua'.

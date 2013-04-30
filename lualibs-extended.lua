@@ -1,23 +1,21 @@
---  This is file `lualibs-extended.lua',
-module('lualibs-extended', package.seeall)
+lualibs = lualibs or { }
 
 local lualibs_extended_module = {
   name          = "lualibs-extended",
-  version       = 1.01,
-  date          = "2013/04/10",
-  description   = "Basic Lua extensions, meta package.",
-  author        = "Hans Hagen, PRAGMA-ADE, Hasselt NL & Elie Roux",
+  version       = 2.00,
+  date          = "2013/04/30",
+  description   = "ConTeXt Lua libraries -- extended collection.",
+  author        = "Hans Hagen, PRAGMA-ADE, Hasselt NL & Elie Roux & Philipp Gesang",
   copyright     = "PRAGMA ADE / ConTeXt Development Team",
   license       = "See ConTeXt's mreadme.pdf for the license",
 }
 
-local lualibs = _G.config.lualibs
 local error, warn, info = lualibs.error, lualibs.warn, lualibs.info
 
-local stringformat  = string.format
-local loadmodule    = lualibs.loadmodule
-local texiowrite    = texio.write
-local texiowrite_nl = texio.write_nl
+local stringformat     = string.format
+local loadmodule       = lualibs.loadmodule
+local texiowrite       = texio.write
+local texiowrite_nl    = texio.write_nl
 
 --[[doc--
 Here we define some functions that fake the elaborate logging/tracking
@@ -92,12 +90,12 @@ restore it after we are done loading.
 local backup_store = { }
 
 local fake_context = function ( )
-  if _G.logs     then backup_store.logs     = _G.logs     end
-  if _G.trackers then backup_store.trackers = _G.trackers end
-  _G.logs     = fake_logs"logs"
-  _G.trackers = fake_trackers"trackers"
+  if logs     then backup_store.logs     = logs     end
+  if trackers then backup_store.trackers = trackers end
+  logs     = fake_logs"logs"
+  trackers = fake_trackers"trackers"
 
-  backup_store.argv = table.fastcopy(_G.arg)
+  backup_store.argv = table.fastcopy(arg)
 end
 
 
@@ -108,9 +106,9 @@ local unfake_context = function ( )
   if backup_store then
     local bl, bt = backup_store.logs, backup_store.trackers
     local argv   = backup_store.argv
-    if bl   then _G.logs     = bl   end
-    if bt   then _G.trackers = bt   end
-    if argv then _G.arg      = argv end
+    if bl   then logs     = bl   end
+    if bt   then trackers = bt   end
+    if argv then arg      = argv end
   end
 end
 
@@ -155,5 +153,5 @@ loadmodule"lualibs-util-jsn.lua"--- cannot be merged because of return statement
 
 unfake_context() --- TODO check if this works at runtime
 
+lualibs.extended_loaded = true
 -- vim:tw=71:sw=2:ts=2:expandtab
---  End of File `lualibs-extended.lua'.

@@ -1,5 +1,7 @@
 #!/usr/bin/env texlua
 
+lualibs = lualibs or { }
+
 local stringgsub  = string.gsub
 local stringlower = string.lower
 local next        = next

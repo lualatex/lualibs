@@ -10,6 +10,24 @@ lualibs.module_info = {
   license       = "See ConTeXt's mreadme.pdf for the license",
 }
 
+--[[doc--
+
+  The behavior of the lualibs can be configured to some extent.
+  \begin{itemize}
+    \item Based on the parameter \verb|lualibs.prefer_merged|, the
+          libraries can be loaded via the included merged packages or
+          the individual files.
+    \item Two classes of libraries are distinguished, mainly because
+          of a similar distinction in \CONTEXT, but also to make
+          loading of the less fundamental functionality optional.
+          While the “basic” collection is always loaded, the
+          configuration setting \verb|lualibs.load_extended| triggers
+          inclusion of the extended collection.
+    \item Verbosity can be increased via the \verb|verbose| switch.
+  \end{itemize}
+
+--doc]]--
+
 config           = config or { }
 config.lualibs   = config.lualibs or { }
 
@@ -19,18 +37,26 @@ end
 if config.lualibs.load_extended == nil then
   lualibs.load_extended = true
 end
-config.lualibs.verbose = config.lualibs.verbose == true
+config.lualibs.verbose = config.lualibs.verbose == false
 
-local dofile        = dofile
-local kpsefind_file = kpse.find_file
-local stringformat  = string.format
-local texiowrit_nl  = texio.write_nl
+--[[doc--
+
+    The lualibs may be loaded in scripts.
+    To account for the different environment, fallbacks for
+    the luatexbase facilities are installed.
+
+--doc]]--
+
+local dofile          = dofile
+local kpsefind_file   = kpse.find_file
+local stringformat    = string.format
+local texiowrite_nl   = texio.write_nl
 
 local find_file, error, warn, info
 do
   local _error, _warn, _info
   if luatexbase and luatexbase.provides_module then
-    _error, _warn, _info = luatexbase.provides_module(lualibs_module)
+    _error, _warn, _info = luatexbase.provides_module(lualibs.module_info)
   else
     _error, _warn, _info = texiowrite_nl, texiowrite_nl, texiowrite_nl
   end
@@ -51,9 +77,22 @@ else
   find_file = kpsefind_file
 end
 
-loadmodule = loadmodule or function (name, t)
+--[[doc--
+
+    The lualibs load a merged package by default.
+    In order to create one of these, the meta file that includes the
+    libraries must satisfy certain assumptions \verb|mtx-package| makes
+    about the coding style.
+    Most important is that the functions that indicates which files
+    to include must go by the name \verb|loadmodule()|.
+    For this reason we define a \verb|loadmodule()| function as a
+    wrapper around \verb|dofile()|.
+
+--doc]]--
+
+local loadmodule = loadmodule or function (name, t)
   if not t then t = "library" end
-  local filepath  = kpsefind_file(name, "lua")
+  local filepath  = find_file(name, "lua")
   if not filepath or filepath == "" then
     warn(stringformat("Could not locate %s “%s”.", t, name))
     return false
@@ -61,12 +100,16 @@ loadmodule = loadmodule or function (name, t)
   dofile(filepath)
   return true
 end
+
 lualibs.loadmodule = loadmodule
 
 --[[doc--
-The separation of the “basic” from the “extended” sets coincides with
-the split into luat-bas.mkiv and luat-lib.mkiv.
+
+    The separation of the “basic” from the “extended” sets coincides
+    with the split into luat-bas.mkiv and luat-lib.mkiv.
+
 --doc]]--
+
 if lualibs.basic_loaded ~= true then
   loadmodule"lualibs-basic.lua"
   loadmodule"lualibs-compat.lua" --- restore stuff gone since v1.*

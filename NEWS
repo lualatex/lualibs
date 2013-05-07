@@ -1,4 +1,12 @@
                         History of the lualibs package
+2013/05/05 v2.0/
+    * sync with Context beta as of 2013.04.29 20:30
+    * merge with mtx-package
+    * split in basic and extended collection, allowing for partial
+      loading
+    * include additional files from Context
+    * drop module() in favor of locals
+
 2012/10/19 v0.9/
     * sync with ConTeXt beta 2012.10.17
     * move some files to util-* prefix

@@ -127,14 +127,15 @@ and the derived file lualibs.lua.
 ]{Linux Libertine O}
 \setmonofont [Ligatures=TeX,Scale=MatchLowercase] {Liberation Mono}
 \setsansfont [Ligatures=TeX,Scale=MatchLowercase] {Iwona Medium}
-\usepackage{hologo}
+\usepackage{metalogo}
 \EnableCrossrefs
 \CodelineIndex
 \newcommand\TEX     {\TeX\xspace}
 \newcommand\LATEX   {\LaTeX\xspace}
 \newcommand\LUA     {Lua\xspace}
-\newcommand\LUATEX  {Lua\TEX}
+\newcommand\LUATEX  {\LuaTeX\xspace}
 \newcommand\CONTEXT {Con\TeX t\xspace}
+
 \def\definehighlight[#1][#2]%
  {\ifcsname #1\endcsname\else
     \expandafter\def\csname #1\endcsname%
@@ -355,59 +356,59 @@ and the derived file lualibs.lua.
 %
 % \section{Packaging}
 %
-  By default, \identifier{lualibs} will not load the libraries individually.
-  Instead, it includes two \emphasis{merged packages} that have been compiled
-  from the original files.
-  This is achieved by means of \identifier{mtx-package}, a script for bundling
-  \LUA code shipped with \CONTEXT.
-  This concatenates the code of several \LUA files into a single file that is
-  both easier to distribute and loading (marginally) faster.
-  \identifier{mtx-package} ensures that the code from each file gets its
-  own closure and strips newlines and comments, resulting in a smaller payload.
-  Another package that relies on it heavily is the font loader as contained in
-  \identifier{luaotfload} and \identifier{luatex-fonts}.
-
-  If \CONTEXT is installed on the system, the merge files can be created
-  by running:
-  
-  \begin{quote}\begin{verbatim}
-    mtxrun --script package --merge lualibs-basic.lua
-    mtxrun --script package --merge lualibs-extended.lua
-  \end{verbatim}\end{quote}
-
-  \noindent
-  Of course there is a make target for that:
-
-  \begin{quote}\begin{verbatim}
-    make merge
-  \end{verbatim}\end{quote}
-  \noindent
-  will take care of assembling the packages from the files distributed with
-  \identifier{lualibs}.
-
-  For this to work, the syntax of the \LUA file needs to be well-formed:
-  files that should be merged must be included via a function
-  \verb|loadmodule()|.
-  It doesn’t matter if the function actually does something; a dummy will
-  suffice.
-  Also, the argument to \verb|loadmodule()| must be wrapped in parentheses.
-  This rule is quite convenient, actually, since it allows excluding files
-  from the merge while still using \verb|loadmodule()| consistently.
-
-  \begin{quote}\begin{verbatim}
-    ...
-    loadmodule("my-lua-file.lua") -- <= will be merged
-    loadmodule('my-2nd-file.lua') -- <= will be merged
-    loadmodule "my-3rd-file.lua"  -- <= will be ignored
-    ...
-  \end{verbatim}\end{quote}
-
-  Note that there is one exception to the packaging:
-  \fileent{lualibs-util-jsn.lua} cannot be successfully packaged because
-  it follows a different coding convention, returning a \LUA table on exit.
-  Therefore, the file is loaded separately as part of the \identifier{extended}
-  set like any other \LUA module.
-
+% By default, \identifier{lualibs} will not load the libraries individually.
+% Instead, it includes two \emphasis{merged packages} that have been compiled
+% from the original files.
+% This is achieved by means of \identifier{mtx-package}, a script for bundling
+% \LUA code shipped with \CONTEXT.
+% This concatenates the code of several \LUA files into a single file that is
+% both easier to distribute and loading (marginally) faster.
+% \identifier{mtx-package} ensures that the code from each file gets its
+% own closure and strips newlines and comments, resulting in a smaller payload.
+% Another package that relies on it heavily is the font loader as contained in
+% \identifier{luaotfload} and \identifier{luatex-fonts}.
+%
+% If \CONTEXT is installed on the system, the merge files can be created
+% by running:
+%
+% \begin{quote}\begin{verbatim}
+%   mtxrun --script package --merge lualibs-basic.lua
+%   mtxrun --script package --merge lualibs-extended.lua
+% \end{verbatim}\end{quote}
+%
+% \noindent
+% Of course there is a make target for that:
+%
+% \begin{quote}\begin{verbatim}
+%   make merge
+% \end{verbatim}\end{quote}
+% \noindent
+% will take care of assembling the packages from the files distributed with
+% \identifier{lualibs}.
+%
+% For this to work, the syntax of the \LUA file needs to be well-formed:
+% files that should be merged must be included via a function
+% \verb|loadmodule()|.
+% It doesn’t matter if the function actually does something; a dummy will
+% suffice.
+% Also, the argument to \verb|loadmodule()| must be wrapped in parentheses.
+% This rule is quite convenient, actually, since it allows excluding files
+% from the merge while still using \verb|loadmodule()| consistently.
+%
+% \begin{quote}\begin{verbatim}
+%   ...
+%   loadmodule("my-lua-file.lua") -- <= will be merged
+%   loadmodule('my-2nd-file.lua') -- <= will be merged
+%   loadmodule "my-3rd-file.lua"  -- <= will be ignored
+%   ...
+% \end{verbatim}\end{quote}
+%
+% Note that there is one exception to the packaging:
+% \fileent{lualibs-util-jsn.lua} cannot be successfully packaged because
+% it follows a different coding convention, returning a \LUA table on exit.
+% Therefore, the file is loaded separately as part of the \identifier{extended}
+% set like any other \LUA module.
+%
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % \part{\fileent{lualibs.lua}}

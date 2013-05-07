@@ -1,22 +1,26 @@
-                          The lualibs generic package
+********************************************************************************
+                              The Lualibs Package
+********************************************************************************
 
 
 Lualibs is a collection of Lua modules useful for general programming.
 
-This work is based on lua modules shipped with ConTeXt, and are made available
-this package to be used independent of ConTeXt.
+This work is based on Lua modules shipped with ConTeXt, to make them available
+for use independent of ConTeXt.
 
-This package is developed on <http://github.com/mpg/lualibs>, see the 'NEWS'
-file for version history.
+This package is developed by the LuaLaTeX development team on
+<http://github.com/lualatex/lualibs>. See the 'NEWS' file for version history.
+
 
 Installation
-------------
+--------------------------------------------------------------------------------
 
 Here are the recommended installation methods (preferred first).
 The methods "commented out" are currently not available.
 
 1. If you are using TeX Live 2010 or later, use 'tlmgr install lualibs'.
-   Alternatively, try your (TeX or Linux) distribution's package management system.
+   Alternatively, use your (TeX or Linux) distribution's package management
+   system.
 
 2. a. Grab lualibs.tds.zip on CTAN.
    b. Unzip it at the root of one or your TDS trees.
@@ -28,55 +32,61 @@ The methods "commented out" are currently not available.
    c. See 2c.
 
 Manifest
---------
+--------------------------------------------------------------------------------
 
 Source files:
     lualibs.dtx
     lualibs-boolean.lua
+    lualibs-compat.lua
     lualibs-dir.lua
     lualibs-file.lua
+    lualibs-function.lua
     lualibs-io.lua
     lualibs-lpeg.lua
+    lualibs-lua.lua
     lualibs-math.lua
     lualibs-md5.lua
     lualibs-number.lua
     lualibs-os.lua
+    lualibs-package.lua
     lualibs-set.lua
     lualibs-string.lua
     lualibs-table.lua
+    lualibs-trac-inf.lua
     lualibs-unicode.lua
     lualibs-url.lua
+    lualibs-util-deb.lua
     lualibs-util-dim.lua
+    lualibs-util-env.lua
     lualibs-util-jsn.lua
     lualibs-util-lua.lua
     lualibs-util-mrg.lua
+    lualibs-util-prs.lua
+    lualibs-util-sta.lua
     lualibs-util-sto.lua
     lualibs-util-str.lua
     lualibs-util-tab.lua
-    README
+    lualibs-util-tpl.lua
+    LICENSE
     Makefile
     NEWS
+    README
 
 Derived files:
     lualibs.lua
+    lualibs-basic.lua
+    lualibs-basic-merged.lua
+    lualibs-extended.lua
+    lualibs-extended-merged.lua
     lualibs.pdf
 
-License
--------
+License and Copyright
+--------------------------------------------------------------------------------
 
-This work and the derived files are under the Creative Commons CC0 license.
+As a derived work of Context, this work and the derived files are under the
+GNU GPL v.2.0 license.
+The full text of the license is included in the file LICENSE.
 
-See the full text at
+The files taken from Context (lualibs-*.lua) are copyright PRAGMA ADE / ConTeXt
+Development Team.
 
-http://creativecommons.org/publicdomain/zero/1.0/legalcode
-
-and a FAQ at
-
-http://wiki.creativecommons.org/CC0
-
-The files lualibs-*.lua are under the GNU GPLv2 license. Their legal notice
-starts by:
-
-"
-Copyright PRAGMA ADE / ConTeXt Development Team
-"

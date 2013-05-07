@@ -9,12 +9,12 @@ MODULES = $(wildcard lualibs-*.lua)
 UNPACKED= lualibs.lua
 COMPILED = $(DOC_DTX)
 GENERATED = $(UNPACKED) $(DOC_DTX) $(MERGED)
-SOURCE = $(DTX) $(MODULES) README Makefile NEWS
+SOURCE = $(DTX) $(MODULES) LICENSE README Makefile NEWS
 MERGED = lualibs-basic-merged.lua lualibs-extended-merged.lua
 
 # Files grouped by installation location
 RUNFILES = $(UNPACKED) $(MODULES)
-DOCFILES = $(DOC_DTX) README NEWS
+DOCFILES = $(DOC_DTX) LICENSE README NEWS
 SRCFILES = $(DTX) $(SRC_TEX) Makefile
 
 # The following definitions should be equivalent
@@ -32,11 +32,10 @@ CTAN_ZIP = $(NAME).zip
 TDS_ZIP = $(NAME).tds.zip
 ZIPS = $(CTAN_ZIP) $(TDS_ZIP)
 
-DO_TEX = tex --interaction=batchmode $< >/dev/null
-DO_PDFLATEX = pdflatex --interaction=batchmode $< >/dev/null
-DO_PDFLUALATEX = pdflualatex --interaction=batchmode $< >/dev/null
-DO_MAKEINDEX = makeindex -s gind.ist $(subst .dtx,,$<) >/dev/null 2>&1
-DO_PACKAGE = mtxrun --script package --merge $< >/dev/null
+DO_TEX 			= luatex     --interaction=batchmode $< >/dev/null
+DO_PDFLATEX 	= latexmk -pdf -e '$$pdflatex = q(lualatex %O %S)' -silent $< >/dev/null
+DO_MAKEINDEX 	= makeindex  -s gind.ist $(subst .dtx,,$<) >/dev/null 2>&1
+DO_PACKAGE 		= mtxrun     --script package --merge $< >/dev/null
 
 all: $(GENERATED) $(DOC_TEX) $(MERGED)
 doc: $(COMPILED)
@@ -59,7 +58,7 @@ world: all ctan
 $(UNPACKED): lualibs.dtx
 	$(DO_TEX)
 
-$(CTAN_ZIP): $(SOURCE) $(COMPILED) $(TDS_ZIP)
+$(CTAN_ZIP): $(SOURCE) $(COMPILED) $(GENERATED) $(TDS_ZIP)
 	@echo "Making $@ for CTAN upload."
 	@$(RM) -- $@
 	@zip -9 $@ $^ >/dev/null

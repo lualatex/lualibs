@@ -6,20 +6,21 @@ DOC_DTX = $(patsubst %.dtx, %.pdf, $(DTX))
 MODULES = $(wildcard lualibs-*.lua)
 
 # Files grouped by generation mode
-UNPACKED= lualibs.lua
-COMPILED = $(DOC_DTX)
-GENERATED = $(UNPACKED) $(DOC_DTX) $(MERGED)
-SOURCE = $(DTX) $(MODULES) LICENSE README Makefile NEWS
-MERGED = lualibs-basic-merged.lua lualibs-extended-merged.lua
+TESTSCRIPT 		= test-lualibs.lua
+UNPACKED		= lualibs.lua lualibs-extended.lua lualibs-basic.lua
+COMPILED 		= $(DOC_DTX)
+GENERATED 		= $(UNPACKED) $(DOC_DTX) $(MERGED)
+SOURCE 			= $(DTX) $(MODULES) $(TESTSCRIPT) LICENSE README Makefile NEWS
+MERGED 			= lualibs-basic-merged.lua lualibs-extended-merged.lua
 
 # Files grouped by installation location
 RUNFILES = $(UNPACKED) $(MODULES)
 DOCFILES = $(DOC_DTX) LICENSE README NEWS
-SRCFILES = $(DTX) $(SRC_TEX) Makefile
+SRCFILES = $(DTX) $(SRC_TEX) Makefile $(TESTSCRIPT)
 
 # The following definitions should be equivalent
 # ALL_FILES = $(RUNFILES) $(DOCFILES) $(SRCFILES)
-ALL_FILES = $(GENERATED) $(SOURCE) $(MERGED)
+ALL_FILES = $(GENERATED) $(SOURCE)
 
 # Installation locations
 FORMAT = luatex
@@ -37,12 +38,15 @@ DO_PDFLATEX 	= latexmk -pdf -e '$$pdflatex = q(lualatex %O %S)' -silent $< >/dev
 DO_MAKEINDEX 	= makeindex  -s gind.ist $(subst .dtx,,$<) >/dev/null 2>&1
 DO_PACKAGE 		= mtxrun     --script package --merge $< >/dev/null
 
-all: $(GENERATED) $(DOC_TEX) $(MERGED)
+all: $(GENERATED) $(DOC_TEX)
 doc: $(COMPILED)
 unpack: $(UNPACKED)
-ctan: $(CTAN_ZIP)
+ctan: check $(CTAN_ZIP)
 tds: $(TDS_ZIP)
 world: all ctan
+
+check: $(TESTSCRIPT)
+	@texlua $(TESTSCRIPT)
 
 .PHONY: all doc unpack ctan tds world
 

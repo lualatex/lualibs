@@ -450,13 +450,9 @@ lualibs.module_info = {
 config           = config or { }
 config.lualibs   = config.lualibs or { }
 
-if config.lualibs.prefer_merged == nil then
-  lualibs.prefer_merged = true
-end
-if config.lualibs.load_extended == nil then
-  lualibs.load_extended = true
-end
-config.lualibs.verbose = config.lualibs.verbose == false
+lualibs.prefer_merged   = config.lualibs.prefer_merged or true
+lualibs.load_extended   = config.lualibs.load_extended or true
+config.lualibs.verbose  = config.lualibs.verbose       or false
 
 %    \end{macrocode}
 %     The lualibs may be loaded in scripts.
@@ -526,13 +522,17 @@ lualibs.loadmodule = loadmodule
 %
 %    \begin{macrocode}
 
-if lualibs.basic_loaded ~= true then
+if lualibs.basic_loaded        ~= true
+or config.lualibs.force_reload == true
+then
   loadmodule"lualibs-basic.lua"
   loadmodule"lualibs-compat.lua" --- restore stuff gone since v1.*
 end
 
-if  lualibs.load_extended   == true
-and lualibs.extended_loaded ~= true then
+if  lualibs.load_extended       == true
+and lualibs.extended_loaded     ~= true
+or  config.lualibs.force_reload == true
+then
   loadmodule"lualibs-extended.lua"
 end
 

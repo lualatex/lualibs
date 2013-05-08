@@ -33,52 +33,54 @@ The methods "commented out" are currently not available.
 
 Manifest
 --------------------------------------------------------------------------------
+            file                            TDS location
 
 Source files:
-    lualibs.dtx
-    lualibs-boolean.lua
-    lualibs-compat.lua
-    lualibs-dir.lua
-    lualibs-file.lua
-    lualibs-function.lua
-    lualibs-io.lua
-    lualibs-lpeg.lua
-    lualibs-lua.lua
-    lualibs-math.lua
-    lualibs-md5.lua
-    lualibs-number.lua
-    lualibs-os.lua
-    lualibs-package.lua
-    lualibs-set.lua
-    lualibs-string.lua
-    lualibs-table.lua
-    lualibs-trac-inf.lua
-    lualibs-unicode.lua
-    lualibs-url.lua
-    lualibs-util-deb.lua
-    lualibs-util-dim.lua
-    lualibs-util-env.lua
-    lualibs-util-jsn.lua
-    lualibs-util-lua.lua
-    lualibs-util-mrg.lua
-    lualibs-util-prs.lua
-    lualibs-util-sta.lua
-    lualibs-util-sto.lua
-    lualibs-util-str.lua
-    lualibs-util-tab.lua
-    lualibs-util-tpl.lua
-    LICENSE
-    Makefile
-    NEWS
-    README
+    lualibs.dtx                     source/luatex/lualibs/lualibs.dtx
+    lualibs-boolean.lua             tex/luatex/lualibs/lualibs-boolean.lua
+    lualibs-compat.lua              tex/luatex/lualibs/lualibs-compat.lua
+    lualibs-dir.lua                 tex/luatex/lualibs/lualibs-dir.lua
+    lualibs-file.lua                tex/luatex/lualibs/lualibs-file.lua
+    lualibs-function.lua            tex/luatex/lualibs/lualibs-function.lua
+    lualibs-io.lua                  tex/luatex/lualibs/lualibs-io.lua
+    lualibs-lpeg.lua                tex/luatex/lualibs/lualibs-lpeg.lua
+    lualibs-lua.lua                 tex/luatex/lualibs/lualibs-lua.lua
+    lualibs-math.lua                tex/luatex/lualibs/lualibs-math.lua
+    lualibs-md5.lua                 tex/luatex/lualibs/lualibs-md5.lua
+    lualibs-number.lua              tex/luatex/lualibs/lualibs-number.lua
+    lualibs-os.lua                  tex/luatex/lualibs/lualibs-os.lua
+    lualibs-package.lua             tex/luatex/lualibs/lualibs-package.lua
+    lualibs-set.lua                 tex/luatex/lualibs/lualibs-set.lua
+    lualibs-string.lua              tex/luatex/lualibs/lualibs-string.lua
+    lualibs-table.lua               tex/luatex/lualibs/lualibs-table.lua
+    lualibs-trac-inf.lua            tex/luatex/lualibs/lualibs-trac-inf.lua
+    lualibs-unicode.lua             tex/luatex/lualibs/lualibs-unicode.lua
+    lualibs-url.lua                 tex/luatex/lualibs/lualibs-url.lua
+    lualibs-util-deb.lua            tex/luatex/lualibs/lualibs-util-deb.lua
+    lualibs-util-dim.lua            tex/luatex/lualibs/lualibs-util-dim.lua
+    lualibs-util-env.lua            tex/luatex/lualibs/lualibs-util-env.lua
+    lualibs-util-jsn.lua            tex/luatex/lualibs/lualibs-util-jsn.lua
+    lualibs-util-lua.lua            tex/luatex/lualibs/lualibs-util-lua.lua
+    lualibs-util-prs.lua            tex/luatex/lualibs/lualibs-util-prs.lua
+    lualibs-util-sta.lua            tex/luatex/lualibs/lualibs-util-sta.lua
+    lualibs-util-sto.lua            tex/luatex/lualibs/lualibs-util-sto.lua
+    lualibs-util-str.lua            tex/luatex/lualibs/lualibs-util-str.lua
+    lualibs-util-tab.lua            tex/luatex/lualibs/lualibs-util-tab.lua
+    lualibs-util-fmt.lua            tex/luatex/lualibs/lualibs-util-fmt.lua
+    lualibs-util-tpl.lua            tex/luatex/lualibs/lualibs-util-tpl.lua
+    LICENSE                         doc/luatex/lualibs/LICENSE
+    Makefile                        source/luatex/lualibs/Makefile
+    NEWS                            doc/luatex/lualibs/NEWS
+    README                          doc/luatex/lualibs/README
+    test-lualibs.lua                source/luatex/lualibs/test-lualibs.lua
 
 Derived files:
-    lualibs.lua
-    lualibs-basic.lua
-    lualibs-basic-merged.lua
-    lualibs-extended.lua
-    lualibs-extended-merged.lua
-    lualibs.pdf
+    lualibs.lua                     tex/luatex/lualibs/lualibs.lua
+    lualibs-basic.lua               tex/luatex/lualibs/lualibs-basic.lua
+    lualibs-basic-merged.lua        tex/luatex/lualibs/lualibs-basic-merged.lua
+    lualibs-extended.lua            tex/luatex/lualibs/lualibs-extended.lua
+    lualibs-extended-merged.lua     tex/luatex/lualibs/lualibs-extended-merged.lua
+    lualibs.pdf                     doc/luatex/lualibs/lualibs.pdf
 
 License and Copyright
 --------------------------------------------------------------------------------

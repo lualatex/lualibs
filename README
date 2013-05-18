@@ -66,7 +66,6 @@ Source files:
     lualibs-util-sto.lua            tex/luatex/lualibs/lualibs-util-sto.lua
     lualibs-util-str.lua            tex/luatex/lualibs/lualibs-util-str.lua
     lualibs-util-tab.lua            tex/luatex/lualibs/lualibs-util-tab.lua
-    lualibs-util-fmt.lua            tex/luatex/lualibs/lualibs-util-fmt.lua
     lualibs-util-tpl.lua            tex/luatex/lualibs/lualibs-util-tpl.lua
     LICENSE                         doc/luatex/lualibs/LICENSE
     Makefile                        source/luatex/lualibs/Makefile

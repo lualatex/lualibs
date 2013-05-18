@@ -15,7 +15,7 @@ local luafiles = {
   "lualibs-util-jsn.lua",  "lualibs-util-lua.lua",
   "lualibs-util-prs.lua",  "lualibs-util-sta.lua",
   "lualibs-util-sto.lua",  "lualibs-util-str.lua",
-  "lualibs-util-tab.lua",  "lualibs-util-fmt.lua",
+  "lualibs-util-tab.lua",
   "lualibs-util-tpl.lua",  "lualibs.lua",
   "lualibs-basic.lua",     "lualibs-basic-merged.lua",
   "lualibs-extended.lua",  "lualibs-extended-merged.lua",

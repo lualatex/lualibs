@@ -3,7 +3,8 @@
 NAME = lualibs
 DTX = $(wildcard *.dtx)
 DOC_DTX = $(patsubst %.dtx, %.pdf, $(DTX))
-MODULES = $(wildcard lualibs-*.lua)
+LUALIBS	= $(wildcard lualibs-*.lua)
+MODULES = $(filter-out $(UNPACKED),$(LUALIBS))
 
 # Files grouped by generation mode
 TESTSCRIPT 		= test-lualibs.lua

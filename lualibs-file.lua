@@ -62,7 +62,7 @@ elseif not lfs.isfile then
 end
 
 local insert, concat = table.insert, table.concat
-local match, find = string.match, string.find
+local match, find, gmatch = string.match, string.find, string.gmatch
 local lpegmatch = lpeg.match
 local getcurrentdir, attributes = lfs.currentdir, lfs.attributes
 local checkedsplit = string.checkedsplit
@@ -115,11 +115,23 @@ local function suffixonly(name)
     return name and lpegmatch(pattern,name) or ""
 end
 
-file.pathpart   = pathpart
-file.basename   = basename
-file.nameonly   = nameonly
-file.suffixonly = suffixonly
-file.suffix     = suffixonly
+local pattern = (noslashes^0 * slashes)^0 * noperiod^1 * ((period * C(noperiod^1))^1) * -1 + Cc("")
+
+local function suffixesonly(name)
+    if name then
+        return lpegmatch(pattern,name)
+    else
+        return ""
+    end
+end
+
+file.pathpart     = pathpart
+file.basename     = basename
+file.nameonly     = nameonly
+file.suffixonly   = suffixonly
+file.suffix       = suffixonly
+file.suffixesonly = suffixesonly
+file.suffixes     = suffixesonly
 
 file.dirname    = pathpart   -- obsolete
 file.extname    = suffixonly -- obsolete
@@ -572,3 +584,19 @@ end
 --         return f(...)
 --     end
 -- end
+
+-- a goodie: a dumb version of mkdirs:
+
+function lfs.mkdirs(path)
+    local full
+    for sub in gmatch(path,"([^\\/]+)") do
+        if full then
+            full = full .. "/" .. sub
+        else
+            full = sub
+        end
+        if not lfs.isdir(full) then
+            lfs.mkdir(full)
+        end
+    end
+end

@@ -8,16 +8,18 @@ MODULES = $(filter-out $(UNPACKED),$(LUALIBS))
 
 # Files grouped by generation mode
 TESTSCRIPT 		= test-lualibs.lua
+DIFFSCRIPT 		= whatsnew.lua
+SCRIPTS			= $(TESTSCRIPT) $(DIFFSCRIPT)
 UNPACKED		= lualibs.lua lualibs-extended.lua lualibs-basic.lua
 COMPILED 		= $(DOC_DTX)
 GENERATED 		= $(UNPACKED) $(DOC_DTX) $(MERGED)
-SOURCE 			= $(DTX) $(MODULES) $(TESTSCRIPT) LICENSE README Makefile NEWS
+SOURCE 			= $(DTX) $(MODULES) $(SCRIPTS) LICENSE README Makefile NEWS
 MERGED 			= lualibs-basic-merged.lua lualibs-extended-merged.lua
 
 # Files grouped by installation location
 RUNFILES = $(UNPACKED) $(MODULES)
 DOCFILES = $(DOC_DTX) LICENSE README NEWS
-SRCFILES = $(DTX) $(SRC_TEX) Makefile $(TESTSCRIPT)
+SRCFILES = $(DTX) $(SRC_TEX) Makefile $(SCRIPTS)
 
 # The following definitions should be equivalent
 # ALL_FILES = $(RUNFILES) $(DOCFILES) $(SRCFILES)
@@ -48,6 +50,9 @@ world: all ctan
 
 check: $(TESTSCRIPT)
 	@texlua $(TESTSCRIPT)
+
+news: $(DIFFSCRIPT)
+	@texlua $(DIFFSCRIPT)
 
 .PHONY: all doc unpack ctan tds world
 

@@ -1,4 +1,7 @@
                         History of the lualibs package
+2013/07/23 v2.0c/
+    * sync with Context beta as of 2013-07-14
+
 2013/05/18 v2.0/
     * sync with Context beta as of 2013.04.29 20:30
     * merge with mtx-package

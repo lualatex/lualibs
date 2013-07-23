@@ -72,6 +72,7 @@ Source files:
     NEWS                            doc/luatex/lualibs/NEWS
     README                          doc/luatex/lualibs/README
     test-lualibs.lua                source/luatex/lualibs/test-lualibs.lua
+    whatsnew.lua                    source/luatex/lualibs/whatsnew.lua
 
 Derived files:
     lualibs.lua                     tex/luatex/lualibs/lualibs.lua

@@ -127,7 +127,13 @@ function io.popen  (...) ioflush() return iopopen(...) end
 
 function os.resultof(command)
     local handle = io.popen(command,"r")
-    return handle and handle:read("*all") or ""
+    if handle then
+        local result = handle:read("*all") or ""
+        handle:close()
+        return result
+    else
+        return ""
+    end
 end
 
 if not io.fileseparator then
@@ -382,31 +388,43 @@ end
 
 local timeformat = format("%%s%s",os.timezone(true))
 local dateformat = "!%Y-%m-%d %H:%M:%S"
+local lasttime   = nil
+local lastdate   = nil
 
 function os.fulltime(t,default)
-    t = tonumber(t) or 0
+    t = t and tonumber(t) or 0
     if t > 0 then
         -- valid time
     elseif default then
         return default
     else
-        t = nil
+        t = time()
     end
-    return format(timeformat,date(dateformat,t))
+    if t ~= lasttime then
+        lasttime = t
+        lastdate = format(timeformat,date(dateformat))
+    end
+    return lastdate
 end
 
 local dateformat = "%Y-%m-%d %H:%M:%S"
+local lasttime   = nil
+local lastdate   = nil
 
 function os.localtime(t,default)
-    t = tonumber(t) or 0
+    t = t and tonumber(t) or 0
     if t > 0 then
         -- valid time
     elseif default then
         return default
     else
-        t = nil
+        t = time()
     end
-    return date(dateformat,t)
+    if t ~= lasttime then
+        lasttime = t
+        lastdate = date(dateformat,t)
+    end
+    return lastdate
 end
 
 function os.converttime(t,default)

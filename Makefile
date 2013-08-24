@@ -23,13 +23,14 @@ SRCFILES = $(DTX) $(SRC_TEX) Makefile $(SCRIPTS)
 
 # The following definitions should be equivalent
 # ALL_FILES = $(RUNFILES) $(DOCFILES) $(SRCFILES)
-ALL_FILES = $(GENERATED) $(SOURCE)
+ALL_FILES = $(SOURCE) $(filter-out $(SOURCE),$(GENERATED))
 
 # Installation locations
 FORMAT = luatex
 RUNDIR = $(TEXMFROOT)/tex/$(FORMAT)/$(NAME)
 DOCDIR = $(TEXMFROOT)/doc/$(FORMAT)/$(NAME)
 SRCDIR = $(TEXMFROOT)/source/$(FORMAT)/$(NAME)
+DISTDIR = ./lualibs
 TEXMFROOT = ./texmf
 
 CTAN_ZIP = $(NAME).zip
@@ -54,7 +55,7 @@ check: $(TESTSCRIPT)
 news: $(DIFFSCRIPT)
 	@texlua $(DIFFSCRIPT)
 
-.PHONY: all doc unpack ctan tds world
+.PHONY: all doc unpack ctan tds world check news
 
 %.pdf: %.dtx
 	$(DO_PDFLATEX)
@@ -68,10 +69,16 @@ news: $(DIFFSCRIPT)
 $(UNPACKED): lualibs.dtx
 	$(DO_TEX)
 
-$(CTAN_ZIP): $(SOURCE) $(COMPILED) $(GENERATED) $(TDS_ZIP)
+define make-ctandir
+@rm -r $(DISTDIR)
+@mkdir $(DISTDIR) && cp $(ALL_FILES) $(DISTDIR)
+endef
+
+$(CTAN_ZIP): $(ALL_FILES) $(TDS_ZIP)
 	@echo "Making $@ for CTAN upload."
 	@$(RM) -- $@
-	@zip -9 $@ $^ >/dev/null
+	$(make-ctandir)
+	@zip -r -9 $@ $(DISTDIR) $(TDS_ZIP) >/dev/null
 
 define run-install
 @mkdir -p $(RUNDIR) && cp $(RUNFILES) $(RUNDIR)
@@ -105,5 +112,6 @@ clean:
 
 mrproper: clean
 	@$(RM) -- $(GENERATED) $(ZIPS)
+	@$(RM) -r $(DISTDIR)
 
 merge: $(MERGED)

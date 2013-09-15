@@ -445,9 +445,23 @@ lualibs.module_info = {
 config           = config or { }
 config.lualibs   = config.lualibs or { }
 
-lualibs.prefer_merged   = config.lualibs.prefer_merged or true
-lualibs.load_extended   = config.lualibs.load_extended or true
-config.lualibs.verbose  = config.lualibs.verbose       or false
+if config.lualibs.prefer_merged ~= nil then
+  lualibs.prefer_merged = config.lualibs.prefer_merged
+else
+  lualibs.prefer_merged = true
+end
+
+if config.lualibs.load_extended ~= nil then
+  lualibs.load_extended = config.lualibs.load_extended
+else
+  lualibs.load_extended = true
+end
+
+if config.lualibs.verbose ~= nil then
+  config.lualibs.verbose = config.lualibs.verbose
+else
+  config.lualibs.verbose = false
+end
 
 %    \end{macrocode}
 %     The lualibs may be loaded in scripts.

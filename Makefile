@@ -70,7 +70,10 @@ $(UNPACKED): lualibs.dtx
 	$(DO_TEX)
 
 define make-ctandir
-@rm -r $(DISTDIR)
+@if [ -d $(DISTDIR) ] ; \
+ then \
+     rm -r $(DISTDIR) ; \
+ fi
 @mkdir $(DISTDIR) && cp $(ALL_FILES) $(DISTDIR)
 endef
 

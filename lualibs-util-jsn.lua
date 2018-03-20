@@ -38,6 +38,7 @@ local rparent    = P("]")
 local comma      = P(",")
 local colon      = P(":")
 local dquote     = P('"')
+local hexdigit   = S("0123456789abcdefABCDEF")
 
 local whitespace = lpeg.patterns.whitespace
 local optionalws = whitespace^0
@@ -52,7 +53,8 @@ local escapes    = {
     ["t"]  = "\t",
 }
 
-local escape_un  = C(P("\\u") / "0x" * S("09","AF","af")) / function(s) return utfchar(tonumber(s)) end
+local escape_un  = Cs(P"\\u" / "0x" * hexdigit * 3) / function(s) return utfchar(tonumber(s)) end
+
 local escape_bs  = P([[\]]) / "" * (P(1) / escapes) -- if not found then P(1) is returned i.e. the to be escaped char
 
 local jstring    = dquote * Cs((escape_un + escape_bs + (1-dquote))^0) * dquote
